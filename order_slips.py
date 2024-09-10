@@ -6,7 +6,7 @@ import os
 import sys
 import json
 
-def error_msg(msg : str) -> None:
+def error_msg(msg : str = 'Unknown error occured.') -> None:
     """Pops up to user and shows error
     
     A function which organizes the creation of a TKinter box
@@ -34,12 +34,12 @@ if not os.path.exists('config.json'):
     error_msg('\"config.json\" not detected in working directory.')
 
 # Setup FOLIO variables
-REQUIRED_KEYS = {'okapi_url', 'tenant', 'username', 'password'}
 login = None # scope resolution
 with open('config.json' ,'r') as config:
     login = json.load(config)
-    print(login)
 
+# checks to ensure config file is set up correctly
+REQUIRED_KEYS = {'okapi_url', 'tenant', 'username', 'password'}
 if login.keys() != REQUIRED_KEYS:
     error_msg('\"config.json\" improperly set up.')
 
@@ -71,6 +71,11 @@ def printPoLines( order, po ):
     for line in order:
         # print(line['id'])
         # input("Press any key")
+        # print(line)
+        with open('DELETEME.json', 'a') as test:
+            json.dump(line, test, indent=2)
+            test.write('\n')
+        
 
         yoffset = yoffsetMultiplier * pagePos
 
@@ -144,6 +149,7 @@ def printPoLines( order, po ):
             copystatement = "1 copy"
         orderline = copystatement + "; PO# " + ponumber + "; " + requester
 
+        # formats routing slip (left side)
         canvas.setFont("Times-Roman", 12.0)
         canvas.drawString(45, 160 + yoffset, title)
         canvas.drawString(45, 146 + yoffset, publisher + ". " + pubdate)
@@ -153,6 +159,7 @@ def printPoLines( order, po ):
         canvas.drawString(45,48 + yoffset, notes)
         canvas.drawString(165,12 + yoffset, cost + " - " + fund + " - " + vendor)
 
+        # formats record keeping slip (right side)
         canvas.drawString(450, 160 + yoffset, title)
         canvas.drawString(450, 146 + yoffset, publisher + ". " + pubdate)
         canvas.drawString(450, 108 + yoffset, orderline)
@@ -164,7 +171,7 @@ def printPoLines( order, po ):
         pagePos = (pagePos + 1) % 3
         if pagePos == 0:
             canvas.showPage()
-
+    
     canvas.save()
     os.startfile(orderFileName)
     return orderFileName
