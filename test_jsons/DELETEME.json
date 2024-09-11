@@ -1,0 +1,83 @@
+{
+  "id": "b6673eef-6228-4ba8-9360-c4652c0583c0",
+  "edition": "First Simon & Schuster hardcover edition.",
+  "checkinItems": false,
+  "acquisitionMethod": "df26d81b-9d63-4ff8-bf41-49bf75cfa70e",
+  "automaticExport": false,
+  "alerts": [],
+  "claims": [],
+  "collection": false,
+  "contributors": [
+    {
+      "contributor": "Pelosi, Nancy, 1940-",
+      "contributorNameTypeId": "2b94c631-fca9-4892-a730-03ee529ffe2a"
+    }
+  ],
+  "cost": {
+    "listUnitPrice": 19.48,
+    "currency": "USD",
+    "discountType": "percentage",
+    "quantityPhysical": 1,
+    "poLineEstimatedPrice": 19.48
+  },
+  "description": "LENA REARDON/LM",
+  "details": {
+    "receivingNote": "POPULAR READING",
+    "isAcknowledged": false,
+    "productIds": [
+      {
+        "productId": "9781668048047",
+        "productIdType": "8261054f-be78-422d-bd51-4ed9f33c3422",
+        "qualifier": ""
+      }
+    ]
+  },
+  "fundDistribution": [
+    {
+      "code": "ahhi",
+      "encumbrance": "13ab9f57-c826-4dca-be54-cab1b8697c28",
+      "fundId": "be0f3dd4-43cd-4c77-a3bd-b67769fbbec4",
+      "expenseClassId": "13cb7840-d5c5-4216-b612-57eaaa926d9b",
+      "distributionType": "percentage",
+      "value": 100.0
+    }
+  ],
+  "instanceId": "b5d2a1a1-0bef-4b37-bce8-cf54127fdef9",
+  "isPackage": false,
+  "locations": [
+    {
+      "locationId": "d97cc983-8197-4081-b8d5-29e9cbfdcb15",
+      "quantity": 1,
+      "quantityPhysical": 1
+    }
+  ],
+  "orderFormat": "Physical Resource",
+  "paymentStatus": "Fully Paid",
+  "physical": {
+    "createInventory": "None",
+    "materialType": "430d7452-9f83-4fe6-9cf0-b6abf0cdfac6",
+    "materialSupplier": "9e1164d3-4121-59bc-b340-6d79f8f01d27",
+    "volumes": []
+  },
+  "poLineNumber": "LB405-5",
+  "publicationDate": "2024, \u00a92024",
+  "publisher": "Simon & Schuster",
+  "purchaseOrderId": "781a5998-920b-49f8-9cda-d9ecf4deb41a",
+  "receiptStatus": "Awaiting Receipt",
+  "reportingCodes": [],
+  "requester": "REARDON/LM",
+  "rush": false,
+  "source": "User",
+  "titleOrPackage": "The art of power : my story as America's first woman Speaker of the House / Nancy Pelosi.",
+  "vendorDetail": {
+    "instructions": "",
+    "vendorAccount": "",
+    "referenceNumbers": []
+  },
+  "metadata": {
+    "createdDate": "2024-09-04T14:35:56.074+00:00",
+    "createdByUserId": "a9bd9c22-9216-4207-960e-bbfc780df39b",
+    "updatedDate": "2024-09-10T14:45:40.751+00:00",
+    "updatedByUserId": "a9bd9c22-9216-4207-960e-bbfc780df39b"
+  }
+}

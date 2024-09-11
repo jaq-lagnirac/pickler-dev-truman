@@ -1,13 +1,14 @@
+# Stephen Wynn, Justin Caringal
+# A script to facilitate FolioClient calls to print out order slips
 import tkinter as tk
 import folioclient
 from reportlab.pdfgen.canvas import Canvas
-import tkinter as tk
 import os
 import sys
 import json
 
 def error_msg(msg : str = 'Unknown error occured.') -> None:
-    """Pops up to user and shows error
+    """Pops up to user and shows error -jaq
     
     A function which organizes the creation of a TKinter box
     to show error, after which the system exits and terminates
@@ -18,7 +19,6 @@ def error_msg(msg : str = 'Unknown error occured.') -> None:
         
     Returns:
         None, terminates program
-    
     """
     error = tk.Tk()
     error.title("Error")
@@ -29,7 +29,7 @@ def error_msg(msg : str = 'Unknown error occured.') -> None:
     error.mainloop()
     sys.exit(1)
 
-# checks for existence of config.json file, notifies user if none available
+# checks for existence of config.json file, notifies user if none available -jaq
 if not os.path.exists('config.json'):
     error_msg('\"config.json\" not detected in working directory.')
 
@@ -38,7 +38,7 @@ login = None # scope resolution
 with open('config.json' ,'r') as config:
     login = json.load(config)
 
-# checks to ensure config file is set up correctly
+# checks to ensure config file is set up correctly -jaq
 REQUIRED_KEYS = {'okapi_url', 'tenant', 'username', 'password'}
 if login.keys() != REQUIRED_KEYS:
     error_msg('\"config.json\" improperly set up.')
@@ -61,6 +61,53 @@ def fetch_organization( organization_id ):
     o = f.folio_get_single_object(path='organizations-storage/organizations/' + organization_id)
     return o['name']
 
+def fetch_isbn(instance_id : str) -> str:
+    """Fetches ISBN of FOLIO instance -jaq
+    
+    A function which fetches the ISBN for a FOLIO line
+    and handles the exceptions for when there is no ISBN
+    present (i.e. with DVDs)
+    
+    Args:
+        instance_id (str): the ID extracted from the Order Line
+    
+    Returns:
+        str: Returns the ISBN if present, or an message otherwise
+    """
+
+    # attempts to fetch instance object,
+    # returns negative message if exception encountered
+    # most likely error a Client error '400 Bad Request'
+    # if the instance ID is invalid
+    instance = None # scope resolution
+    try:
+        instance = f.folio_get_single_object(path=f'instance-storage/instances/{instance_id}')
+    except:
+        return 'Unable to access FOLIO'
+    
+    # checks to see if identifiers exist for instance
+    # most likely to not exist for non-book items 
+    # (i.e. DVDs, Blu-Ray, etc.)
+    if not instance['identifiers']:
+        return 'ISBN not applicable'
+
+    # processes all identifiers to find ISBNs from other
+    # identifiers (OCLC, Cancelled system control number,
+    # etc.)
+    isbn_dict = {}
+    for id in instance['identifiers']:
+        identifier_type = f.folio_get_single_object(path=f'identifier-types/{id['identifierTypeId']}')
+        if identifier_type['name'] == 'ISBN':
+            isbn = id['value'].split()[0] # split amongst spaces, only keeps number, removes ()
+            isbn_dict[len(isbn)] = isbn # keyed by length to easily determine ISBN-13 vs ISBN-10
+
+    # returns relevant ISBN information
+    if 13 in isbn_dict: # if ISBN-13 was found (preferred)
+        return isbn_dict[13]
+    if 10 in isbn_dict: # if ISBN-13 wasn't found but ISBN-10 was
+        return isbn_dict[10]
+    return 'No ISBN found' # base case, neither ISBN-13 or ISBN-10 found
+
 def printPoLines( order, po ):
     
     orderFileName = "Orders_" + po + ".pdf"
@@ -72,12 +119,14 @@ def printPoLines( order, po ):
         # print(line['id'])
         # input("Press any key")
         # print(line)
-        with open('DELETEME.json', 'a') as test:
-            json.dump(line, test, indent=2)
-            test.write('\n')
+        # with open('DELETEME.json', 'a') as test:
+        #     json.dump(line, test, indent=2)
+        #     test.write('\n')
         
 
-        yoffset = yoffsetMultiplier * pagePos
+        yoffset = yoffsetMultiplier * pagePos # sets offset for 
+
+        ### extracts relevant data ###
 
         id = line['id']
         ponumber = line['poLineNumber']
@@ -149,6 +198,9 @@ def printPoLines( order, po ):
             copystatement = "1 copy"
         orderline = copystatement + "; PO# " + ponumber + "; " + requester
 
+        instance_id = line['instanceId']
+        print(f'{instance_id}\t-->\t{fetch_isbn(instance_id)}')
+
         # formats routing slip (left side)
         canvas.setFont("Times-Roman", 12.0)
         canvas.drawString(45, 160 + yoffset, title)
@@ -168,7 +220,7 @@ def printPoLines( order, po ):
         canvas.drawString(450,48 + yoffset, notes)
         canvas.drawString(615,12 + yoffset, cost + " - " + fund + " - " + vendor)
 
-        pagePos = (pagePos + 1) % 3
+        pagePos = (pagePos + 1) % 3 # keeps three tickets max to a page
         if pagePos == 0:
             canvas.showPage()
     
