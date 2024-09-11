@@ -83,7 +83,7 @@ def fetch_isbn(instance_id : str) -> str:
     try:
         instance = f.folio_get_single_object(path=f'instance-storage/instances/{instance_id}')
     except:
-        return 'Unable to access FOLIO'
+        return 'Unable to query ISBN'
     
     # checks to see if identifiers exist for instance
     # most likely to not exist for non-book items 
@@ -103,9 +103,9 @@ def fetch_isbn(instance_id : str) -> str:
 
     # returns relevant ISBN information
     if 13 in isbn_dict: # if ISBN-13 was found (preferred)
-        return isbn_dict[13]
+        return f'ISBN: {isbn_dict[13]}'
     if 10 in isbn_dict: # if ISBN-13 wasn't found but ISBN-10 was
-        return isbn_dict[10]
+        return f'ISBN: {isbn_dict[10]}'
     return 'No ISBN found' # base case, neither ISBN-13 or ISBN-10 found
 
 def printPoLines( order, po ):
@@ -115,6 +115,7 @@ def printPoLines( order, po ):
     yoffsetMultiplier = 210
     pagePos = 0
 
+    # iterates through all orders
     for line in order:
         # print(line['id'])
         # input("Press any key")
@@ -124,7 +125,7 @@ def printPoLines( order, po ):
         #     test.write('\n')
         
 
-        yoffset = yoffsetMultiplier * pagePos # sets offset for 
+        yoffset = yoffsetMultiplier * pagePos # sets offset for left vs. right
 
         ### extracts relevant data ###
 
@@ -199,21 +200,24 @@ def printPoLines( order, po ):
         orderline = copystatement + "; PO# " + ponumber + "; " + requester
 
         instance_id = line['instanceId']
-        print(f'{instance_id}\t-->\t{fetch_isbn(instance_id)}')
+        # print(f'{instance_id}\t-->\t{fetch_isbn(instance_id)}')
+        isbn = fetch_isbn(instance_id)
 
         # formats routing slip (left side)
         canvas.setFont("Times-Roman", 12.0)
         canvas.drawString(45, 160 + yoffset, title)
         canvas.drawString(45, 146 + yoffset, publisher + ". " + pubdate)
+        canvas.drawString(45, 132 + yoffset, isbn)
         canvas.drawString(45, 108 + yoffset, orderline)
-        canvas.drawString(45,76 + yoffset, material_type)
-        canvas.drawString(45,62 + yoffset, location)
-        canvas.drawString(45,48 + yoffset, notes)
+        canvas.drawString(45, 76 + yoffset, material_type)
+        canvas.drawString(45, 62 + yoffset, location)
+        canvas.drawString(45, 48 + yoffset, notes)
         canvas.drawString(165,12 + yoffset, cost + " - " + fund + " - " + vendor)
 
         # formats record keeping slip (right side)
         canvas.drawString(450, 160 + yoffset, title)
         canvas.drawString(450, 146 + yoffset, publisher + ". " + pubdate)
+        canvas.drawString(450, 132 + yoffset, isbn)
         canvas.drawString(450, 108 + yoffset, orderline)
         canvas.drawString(450,76 + yoffset, material_type)
         canvas.drawString(450,62 + yoffset, location)
@@ -249,6 +253,7 @@ def clicked():
         msgLine.config(text = success + " has been printed.")
 
 
+### GUI which pops up to the user to query them for order numbers ###
 root = tk.Tk()
 
 root.title("Order Slip Printer")
@@ -260,7 +265,7 @@ button = tk.Button(root, text = "Enter", width=25, command = clicked)
 button.grid(row = 2, column = 0)
 button = tk.Button(root, text = "Cancel", width=25, command = root.destroy)
 button.grid(row = 2, column = 1)
-msgLine = tk.Label(root, text="msgLINE")
+msgLine = tk.Label(root, text="Awaiting input.")
 msgLine.grid(row = 3, column = 0)
 
 root.mainloop()
