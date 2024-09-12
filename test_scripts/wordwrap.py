@@ -53,7 +53,7 @@ def wordwrap_selfgrowing(txt, line_length_limit):
     return return_list
 
 txt = 'hello world and all      of the people in the world.\nwe love it so much'
-l = wordwrap_selfgrowing(txt, 20, 10)
+l = wordwrap_selfgrowing(txt, 20)
 print(l)
 print('')
 for x in l:
