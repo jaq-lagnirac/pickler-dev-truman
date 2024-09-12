@@ -160,6 +160,27 @@ def wordwrap(txt : str, line_length_limit : int) -> list:
     
     return return_list
 
+def process_notes(wrapped_list : list) -> tuple[str, str, str]:
+    """Splits list, processes overflow
+    
+    A function which breaks down the list of wrapped text
+    and adds on notes if the length of the note exceeds three
+    lines
+    
+    Args:
+        wrapped_list (list): a list of strings processed by wordwrap
+    Returns:
+        (str, str, str): Returns tuple of strings representing the
+            three lines of text to be processed by the system        
+    """
+    NOTE_FOR_MORE = '...[MORE]'
+    notes1 = wrapped_list[0]
+    notes2 = wrapped_list[1]
+    notes3 = wrapped_list[2]
+    if len(wrapped_list) > 3:
+        notes3 = f'{notes3[:-len(NOTE_FOR_MORE)]}{NOTE_FOR_MORE}'
+    return (notes1, notes2, notes3)
+
 def printPoLines( order, po ):
     
     orderFileName = "Orders_" + po + ".pdf"
@@ -204,10 +225,14 @@ def printPoLines( order, po ):
         except:
             fund = "unkown fund"
 
-        try:
-            notes = line['details']['receivingNote']
+        try: #THIS DOES NOT WORK YET
+            # notes = line['details']['receivingNote']
+            # raw_notes = line['details']['receivingNote']
+            raw_notes = '-----+++++-----+++++-----+++++-----+++++' #test line
+            wrapped_notes = wordwrap(raw_notes, 10) # broken up list
+            notes1, notes2, notes3 = process_notes(wrapped_notes)
         except:
-            notes = ""
+            notes1 = notes2 = notes3 = "-----+++++"
 
         try:
             publisher = line['publisher']
@@ -265,7 +290,10 @@ def printPoLines( order, po ):
         OL = PUB - 21 # originally 108
         MAT_TYPE = OL - 21 # originally 76
         LOC = MAT_TYPE - 14 # originally 62
-        NOTES = LOC - 14 # originally 48
+        # NOTES = LOC - 14 # originally 48
+        NOTES1 = LOC - 14
+        NOTES2 = NOTES1 - 14
+        NOTES3 = NOTES2 - 14
         ISBN = 12 # originally 12
         # print(LEFT_SLIP_X, RIGHT_SLIP_X, TITLE, PUB, OL, MAT_TYPE, LOC, NOTES, ISBN)
 
@@ -276,7 +304,10 @@ def printPoLines( order, po ):
         canvas.drawString(LEFT_SLIP_X, OL + yoffset, orderline)
         canvas.drawString(LEFT_SLIP_X, MAT_TYPE + yoffset, material_type)
         canvas.drawString(LEFT_SLIP_X, LOC + yoffset, location)
-        canvas.drawString(LEFT_SLIP_X, NOTES + yoffset, notes)
+        # canvas.drawString(LEFT_SLIP_X, NOTES + yoffset, notes)
+        canvas.drawString(LEFT_SLIP_X, NOTES1 + yoffset, notes1)
+        canvas.drawString(LEFT_SLIP_X, NOTES2 + yoffset, notes2)
+        canvas.drawString(LEFT_SLIP_X, NOTES3 + yoffset, notes3)
         canvas.drawString(LEFT_SLIP_X, ISBN + yoffset, isbn)
         canvas.drawString(165, ISBN + yoffset, cost + " - " + fund + " - " + vendor)
 
@@ -286,7 +317,10 @@ def printPoLines( order, po ):
         canvas.drawString(RIGHT_SLIP_X, OL + yoffset, orderline)
         canvas.drawString(RIGHT_SLIP_X, MAT_TYPE + yoffset, material_type)
         canvas.drawString(RIGHT_SLIP_X, LOC + yoffset, location)
-        canvas.drawString(RIGHT_SLIP_X, NOTES + yoffset, notes)
+        # canvas.drawString(RIGHT_SLIP_X, NOTES + yoffset, notes)
+        canvas.drawString(RIGHT_SLIP_X, NOTES1 + yoffset, notes1)
+        canvas.drawString(RIGHT_SLIP_X, NOTES2 + yoffset, notes2)
+        canvas.drawString(RIGHT_SLIP_X, NOTES3 + yoffset, notes3)
         canvas.drawString(RIGHT_SLIP_X, ISBN + yoffset, isbn)
         canvas.drawString(615, ISBN + yoffset, cost + " - " + fund + " - " + vendor)
 
