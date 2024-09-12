@@ -47,7 +47,10 @@ okapi_url = login['okapi_url']
 tenant = login['tenant']
 username = login['username']
 password = login['password']
-f = folioclient.FolioClient(okapi_url, tenant, username, password)
+try:
+    f = folioclient.FolioClient(okapi_url, tenant, username, password)
+except:
+    error_msg('Cannot connect to FolioClient')
 
 def fetch_material_type( material_type_id ):
     m = f.folio_get_single_object(path='material-types/' + material_type_id)
@@ -114,7 +117,7 @@ def fetch_isbn(instance_id : str) -> str:
     return 'No ISBN found' # base case, neither ISBN-13 or ISBN-10 found
 
 def wordwrap(txt : str, line_length_limit : int) -> list:
-    """wraps text to multiple lines
+    """wraps text to multiple lines -jaq
     
     A function which breaks up a string into a list
     of strings, functionally allowing for the creation
@@ -252,26 +255,40 @@ def printPoLines( order, po ):
         # print(f'{instance_id}\t-->\t{fetch_isbn(instance_id)}')
         isbn = fetch_isbn(instance_id)
 
+        ### constants for ease of adjustment
+        # x constants
+        LEFT_SLIP_X = 45 # originally 45
+        RIGHT_SLIP_X = 450 # originally 450
+        # y constants
+        TITLE = 160 # originally 160
+        PUB = TITLE - 14 # originally 146
+        OL = PUB - 21 # originally 108
+        MAT_TYPE = OL - 21 # originally 76
+        LOC = MAT_TYPE - 14 # originally 62
+        NOTES = LOC - 14 # originally 48
+        ISBN = 12 # originally 12
+        # print(LEFT_SLIP_X, RIGHT_SLIP_X, TITLE, PUB, OL, MAT_TYPE, LOC, NOTES, ISBN)
+
         # formats routing slip (left side)
         canvas.setFont("Times-Roman", 12.0)
-        canvas.drawString(45, 160 + yoffset, title)
-        canvas.drawString(45, 146 + yoffset, publisher + ". " + pubdate)
-        canvas.drawString(45, 108 + yoffset, orderline)
-        canvas.drawString(45, 76 + yoffset, material_type)
-        canvas.drawString(45, 62 + yoffset, location)
-        canvas.drawString(45, 48 + yoffset, notes)
-        canvas.drawString(45, 12 + yoffset, isbn)
-        canvas.drawString(165, 12 + yoffset, cost + " - " + fund + " - " + vendor)
+        canvas.drawString(LEFT_SLIP_X, TITLE + yoffset, title)
+        canvas.drawString(LEFT_SLIP_X, PUB + yoffset, publisher + ". " + pubdate)
+        canvas.drawString(LEFT_SLIP_X, OL + yoffset, orderline)
+        canvas.drawString(LEFT_SLIP_X, MAT_TYPE + yoffset, material_type)
+        canvas.drawString(LEFT_SLIP_X, LOC + yoffset, location)
+        canvas.drawString(LEFT_SLIP_X, NOTES + yoffset, notes)
+        canvas.drawString(LEFT_SLIP_X, ISBN + yoffset, isbn)
+        canvas.drawString(165, ISBN + yoffset, cost + " - " + fund + " - " + vendor)
 
         # formats record keeping slip (right side)
-        canvas.drawString(450, 160 + yoffset, title)
-        canvas.drawString(450, 146 + yoffset, publisher + ". " + pubdate)
-        canvas.drawString(450, 108 + yoffset, orderline)
-        canvas.drawString(450, 76 + yoffset, material_type)
-        canvas.drawString(450, 62 + yoffset, location)
-        canvas.drawString(450, 48 + yoffset, notes)
-        canvas.drawString(450, 12 + yoffset, isbn)
-        canvas.drawString(615, 12 + yoffset, cost + " - " + fund + " - " + vendor)
+        canvas.drawString(RIGHT_SLIP_X, TITLE + yoffset, title)
+        canvas.drawString(RIGHT_SLIP_X, PUB + yoffset, publisher + ". " + pubdate)
+        canvas.drawString(RIGHT_SLIP_X, OL + yoffset, orderline)
+        canvas.drawString(RIGHT_SLIP_X, MAT_TYPE + yoffset, material_type)
+        canvas.drawString(RIGHT_SLIP_X, LOC + yoffset, location)
+        canvas.drawString(RIGHT_SLIP_X, NOTES + yoffset, notes)
+        canvas.drawString(RIGHT_SLIP_X, ISBN + yoffset, isbn)
+        canvas.drawString(615, ISBN + yoffset, cost + " - " + fund + " - " + vendor)
 
         pagePos = (pagePos + 1) % 3 # keeps three tickets max to a page
         if pagePos == 0:
