@@ -100,6 +100,11 @@ def fetch_isbn(instance_id : str) -> str:
         if identifier_type['name'] == 'ISBN':
             isbn = id['value'].split()[0] # split amongst spaces, only keeps number, removes ()
             isbn_dict[len(isbn)] = isbn # keyed by length to easily determine ISBN-13 vs ISBN-10
+            # NOTE: IMPORTANT! This method will override multiple ISBNs of the same length (i.e.
+            # if paperback and hardcover ISBN-13s are both listed, it will only keep the ISBN-13
+            # processed last). This was determined to be okay for the use cases that this field
+            # would be put under (used for look-up to confirm that the book ordered was correct)
+            # but it may not be useful to your specific case
 
     # returns relevant ISBN information
     if 13 in isbn_dict: # if ISBN-13 was found (preferred)
@@ -107,6 +112,50 @@ def fetch_isbn(instance_id : str) -> str:
     if 10 in isbn_dict: # if ISBN-13 wasn't found but ISBN-10 was
         return f'ISBN: {isbn_dict[10]}'
     return 'No ISBN found' # base case, neither ISBN-13 or ISBN-10 found
+
+def wordwrap(txt : str, line_length_limit : int) -> list:
+    """wraps text to multiple lines
+    
+    A function which breaks up a string into a list
+    of strings, functionally allowing for the creation
+    of a word-wrap-like effect
+    
+    Args:
+        txt (str): The input string to be broken down
+        line_length_limit (int): The characters per line limit,
+            trailing spaces included; The terminal width
+    
+    Returns:
+        list: A list of strings, broken down from the input txt
+    """
+    # set-up of info before the main loop of the function
+    txtlist = txt.split() # list of the string broken up by whitespace
+    return_list = [''] # the list with a row of one, will be returned
+    index = 0 # index counter to be used to traverse list
+
+    # iterates through each word of the broken up txt stored in txtlist
+    # and compares the possible future line length of the current
+    # index/row against the terminal width. if the possible length
+    # exceeds the terminal width, the loop sends the word currently
+    # being processed to the next line and increments the index counter
+    # to point to the new line
+    for word in txtlist:
+        spaced_string = f'{word} ' # restoring spaces to the string
+        new_word_length = len(spaced_string)
+        current_line_length = len(return_list[index])
+        possible_length = current_line_length + new_word_length
+        
+        # if the possible future length does not exceed the terminal width, add
+        # the word to the current line
+        if possible_length < line_length_limit:
+            return_list[index] += spaced_string
+        # otherwise add the spaced string to a new line and increment the index
+        # to point to this new line element
+        else:
+            return_list += [spaced_string]
+            index += 1
+    
+    return return_list
 
 def printPoLines( order, po ):
     
