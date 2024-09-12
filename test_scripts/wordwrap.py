@@ -32,11 +32,28 @@ def wordwrap(txt, line_length_limit, num_of_lines):
             return_list[index] += spaced_string
         else:
             index += 1
-            return_list[index] += spaced_string # implement self-growing list here (return_list += [spaced_string])
+            return_list[index] += spaced_string # implement self-growing list here (return_list = [spaced_string])
+    return return_list
+
+def wordwrap_selfgrowing(txt, line_length_limit):
+    txtlist = txt.split()
+    return_list = ['']
+    
+    index = 0
+    for word in txtlist:
+        spaced_string = f'{word} '
+        new_word_length = len(spaced_string)
+        current_line_length = len(return_list[index])
+        possible_length = current_line_length + new_word_length
+        if possible_length < line_length_limit:
+            return_list[index] += spaced_string
+        else:
+            index += 1
+            return_list += [spaced_string] # implement self-growing list here (return_list += [spaced_string])
     return return_list
 
 txt = 'hello world and all      of the people in the world.\nwe love it so much'
-l = wordwrap(txt, 20, 10)
+l = wordwrap_selfgrowing(txt, 20, 10)
 print(l)
 print('')
 for x in l:
