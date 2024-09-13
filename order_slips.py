@@ -150,8 +150,13 @@ def wordwrap(txt : str, line_length_limit : int) -> list:
         
         # if the possible future length does not exceed the terminal width, add
         # the word to the current line
-        if possible_length < line_length_limit:
+        if possible_length <= line_length_limit:
             return_list[index] += spaced_string
+        # if removing the space at the end of the new word will cause it to fit
+        # onto the end of the line, do so (in essence, add on word instead of
+        # spaced_string)
+        elif (possible_length - 1) <= line_length_limit:
+            return_list[index] += word
         # otherwise add the spaced string to a new line and increment the index
         # to point to this new line element
         else:
@@ -160,7 +165,7 @@ def wordwrap(txt : str, line_length_limit : int) -> list:
     
     return return_list
 
-def process_notes(wrapped_list : list) -> tuple[str, str, str]:
+def process_notes(wrapped_list : list) -> tuple[str, str, str, str]:
     """Splits list, processes overflow
     
     A function which breaks down the list of wrapped text
@@ -170,16 +175,26 @@ def process_notes(wrapped_list : list) -> tuple[str, str, str]:
     Args:
         wrapped_list (list): a list of strings processed by wordwrap
     Returns:
-        (str, str, str): Returns tuple of strings representing the
+        (str, str, str, str): Returns tuple of strings representing the
             three lines of text to be processed by the system        
     """
-    NOTE_FOR_MORE = '...[MORE]'
+
+    # ensures minimum length of wrapped list to prevent errors with
+    # null elements in arrays
+    while len(wrapped_list) < 4:
+        wrapped_list += ['']
+
+    # unpacks notes into variables
     notes1 = wrapped_list[0]
     notes2 = wrapped_list[1]
     notes3 = wrapped_list[2]
-    if len(wrapped_list) > 3:
-        notes3 = f'{notes3[:-len(NOTE_FOR_MORE)]}{NOTE_FOR_MORE}'
-    return (notes1, notes2, notes3)
+    notes4 = wrapped_list[3]
+
+    # adds notifier if there is more lines of notes than can be displayed
+    NOTE_FOR_MORE = '...[MORE]'
+    if len(wrapped_list) > 4:
+        notes4 = f'{notes4[:-len(NOTE_FOR_MORE)]}{NOTE_FOR_MORE}'
+    return (notes1, notes2, notes3, notes4)
 
 def printPoLines( order, po ):
     
@@ -225,14 +240,16 @@ def printPoLines( order, po ):
         except:
             fund = "unkown fund"
 
-        try: #THIS DOES NOT WORK YET
+        try:
             # notes = line['details']['receivingNote']
             # raw_notes = line['details']['receivingNote']
-            raw_notes = '-----+++++-----+++++-----+++++-----+++++' #test line
+            raw_notes = '-----+++++  -----+++++ -----+++++' #test line
             wrapped_notes = wordwrap(raw_notes, 10) # broken up list
-            notes1, notes2, notes3 = process_notes(wrapped_notes)
+            print(id, wrapped_notes)
+            notes1, notes2, notes3, notes4 = process_notes(wrapped_notes)
+            print(notes1, notes2, notes3, notes4)
         except:
-            notes1 = notes2 = notes3 = "-----+++++"
+            notes1 = notes2 = notes3 = notes4 = ""
 
         try:
             publisher = line['publisher']
@@ -294,6 +311,7 @@ def printPoLines( order, po ):
         NOTES1 = LOC - 14
         NOTES2 = NOTES1 - 14
         NOTES3 = NOTES2 - 14
+        NOTES4 = NOTES3 - 14
         ISBN = 12 # originally 12
         # print(LEFT_SLIP_X, RIGHT_SLIP_X, TITLE, PUB, OL, MAT_TYPE, LOC, NOTES, ISBN)
 
@@ -308,8 +326,8 @@ def printPoLines( order, po ):
         canvas.drawString(LEFT_SLIP_X, NOTES1 + yoffset, notes1)
         canvas.drawString(LEFT_SLIP_X, NOTES2 + yoffset, notes2)
         canvas.drawString(LEFT_SLIP_X, NOTES3 + yoffset, notes3)
-        canvas.drawString(LEFT_SLIP_X, ISBN + yoffset, isbn)
-        canvas.drawString(165, ISBN + yoffset, cost + " - " + fund + " - " + vendor)
+        canvas.drawString(LEFT_SLIP_X, NOTES4 + yoffset, notes4)
+        canvas.drawString(LEFT_SLIP_X, ISBN + yoffset, f'{isbn:<30}{cost} - {fund} - {vendor}')
 
         # formats record keeping slip (right side)
         canvas.drawString(RIGHT_SLIP_X, TITLE + yoffset, title)
@@ -321,8 +339,8 @@ def printPoLines( order, po ):
         canvas.drawString(RIGHT_SLIP_X, NOTES1 + yoffset, notes1)
         canvas.drawString(RIGHT_SLIP_X, NOTES2 + yoffset, notes2)
         canvas.drawString(RIGHT_SLIP_X, NOTES3 + yoffset, notes3)
-        canvas.drawString(RIGHT_SLIP_X, ISBN + yoffset, isbn)
-        canvas.drawString(615, ISBN + yoffset, cost + " - " + fund + " - " + vendor)
+        canvas.drawString(RIGHT_SLIP_X, NOTES4 + yoffset, notes4)
+        canvas.drawString(RIGHT_SLIP_X, ISBN + yoffset, f'{isbn:<30}{cost} - {fund} - {vendor}')
 
         pagePos = (pagePos + 1) % 3 # keeps three tickets max to a page
         if pagePos == 0:
