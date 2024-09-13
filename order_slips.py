@@ -132,8 +132,9 @@ def wordwrap(txt : str, line_length_limit : int) -> list:
         list: A list of strings, broken down from the input txt
     """
     # set-up of info before the main loop of the function
+    NOTES_HEADING = 'Notes: '
     txtlist = txt.split() # list of the string broken up by whitespace
-    return_list = [''] # the list with a row of one, will be returned
+    return_list = [NOTES_HEADING] # the list with a row of one, will be returned
     index = 0 # index counter to be used to traverse list
 
     # iterates through each word of the broken up txt stored in txtlist
@@ -169,20 +170,20 @@ def process_notes(wrapped_list : list) -> tuple[str, str, str, str]:
     """Splits list, processes overflow
     
     A function which breaks down the list of wrapped text
-    and adds on notes if the length of the note exceeds three
+    and adds on notes if the length of the note exceeds four
     lines
     
     Args:
         wrapped_list (list): a list of strings processed by wordwrap
     Returns:
         (str, str, str, str): Returns tuple of strings representing the
-            three lines of text to be processed by the system        
+            four lines of text to be processed by the system        
     """
 
     # ensures minimum length of wrapped list to prevent errors with
     # null elements in arrays
     while len(wrapped_list) < 4:
-        wrapped_list += ['']
+        wrapped_list += ['.'] # replaced empty string '' with '.' to signify correct print
 
     # unpacks notes into variables
     notes1 = wrapped_list[0]
@@ -231,7 +232,7 @@ def printPoLines( order, po ):
             copies = "1"
 
         try:
-            cost = "$" + str(line['cost']['poLineEstimatedPrice'])
+            cost = f'${line['cost']['poLineEstimatedPrice'] :.2f}' # rounds to 2 decimal places
         except:
             cost = "$?.00"
 
@@ -242,12 +243,10 @@ def printPoLines( order, po ):
 
         try:
             # notes = line['details']['receivingNote']
-            # raw_notes = line['details']['receivingNote']
-            raw_notes = '-----+++++  -----+++++ -----+++++' #test line
-            wrapped_notes = wordwrap(raw_notes, 10) # broken up list
-            print(id, wrapped_notes)
+            raw_notes = line['details']['receivingNote']
+            MAX_TERMINAL_WIDTH = 60
+            wrapped_notes = wordwrap(raw_notes, MAX_TERMINAL_WIDTH) # broken up list
             notes1, notes2, notes3, notes4 = process_notes(wrapped_notes)
-            print(notes1, notes2, notes3, notes4)
         except:
             notes1 = notes2 = notes3 = notes4 = ""
 
