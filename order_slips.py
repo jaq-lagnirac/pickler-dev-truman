@@ -1,5 +1,7 @@
 # Stephen Wynn, Justin Caringal
 # A script to facilitate FolioClient calls to print out order slips
+# Project start date (for jaq): 2024-09-09
+# Project end date: 2024-09-13
 import tkinter as tk
 import folioclient
 from reportlab.pdfgen.canvas import Canvas
@@ -167,7 +169,7 @@ def wordwrap(txt : str, line_length_limit : int) -> list:
     return return_list
 
 def process_notes(wrapped_list : list) -> tuple[str, str, str, str]:
-    """Splits list, processes overflow
+    """Splits list, processes overflow -jaq
     
     A function which breaks down the list of wrapped text
     and adds on notes if the length of the note exceeds four
@@ -212,7 +214,6 @@ def printPoLines( order, po ):
         # with open('DELETEME.json', 'a') as test:
         #     json.dump(line, test, indent=2)
         #     test.write('\n')
-        
 
         yoffset = yoffsetMultiplier * pagePos # sets offset for left vs. right
 
