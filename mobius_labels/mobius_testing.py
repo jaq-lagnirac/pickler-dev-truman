@@ -54,7 +54,7 @@ def test_pdf_to_img():
 
 
 mobius_pdf = 'mobius_label.pdf'
-mobius__output_pdf = 'output_form_mobius_newline.pdf'
+mobius_output_pdf = 'output_form_mobius_newline.pdf'
 def test_new_mobius_label():
     fields = fillpdfs.get_form_fields(mobius_pdf)
     print(fields)
@@ -76,7 +76,11 @@ def test_new_mobius_label():
         fields[field] = 'this is a test\nmultiline1\nmultiline2\nmultiline3\nmultiline4'
     print(fields)
 
-    fillpdfs.write_fillable_pdf(mobius_pdf, mobius__output_pdf, fields)
+    fillpdfs.write_fillable_pdf(mobius_pdf, mobius_output_pdf, fields)
+
+    images = convert_from_path(mobius_output_pdf, poppler_path='Release-24.07.0-0\\poppler-24.07.0\\Library\\bin')
+    for index, img in enumerate(images):
+        img.save(f'test{mobius_output_pdf}{index}.png', 'PNG')
     
 
 
