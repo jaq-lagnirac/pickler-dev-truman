@@ -54,7 +54,7 @@ def test_pdf_to_img():
 
 
 mobius_pdf = 'mobius_label.pdf'
-mobius_output_pdf = 'output_form_mobius_newline.pdf'
+mobius_output_pdf = 'mobius_output_linetest.pdf'
 def test_new_mobius_label():
     fields = fillpdfs.get_form_fields(mobius_pdf)
     print(fields)
@@ -73,7 +73,9 @@ def test_new_mobius_label():
         if field == 'DamageNotedOn' or field == 'DamagedNotedUponReturn':
             fields[field] = 'Yes'
             continue
-        fields[field] = 'this is a test\nmultiline1\nmultiline2\nmultiline3\nmultiline4'
+        # fields[field] = 'this is a test\nmultiline1\nmultiline2\nmultiline3\nmultiline4'
+        fields[field] = '-----+++++-----+++++-----+++++-----+++++-----+++++-----+++++-----+++++'
+        # max_terminal_width = 57
     print(fields)
 
     fillpdfs.write_fillable_pdf(mobius_pdf, mobius_output_pdf, fields)
