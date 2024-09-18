@@ -54,7 +54,7 @@ def test_pdf_to_img():
 
 
 mobius_pdf = 'mobius_label.pdf'
-mobius_output_pdf = 'mobius_output_linetest.pdf'
+mobius_output_pdf = 'mobius_output.pdf'
 def test_new_mobius_label():
     fields = fillpdfs.get_form_fields(mobius_pdf)
     print(fields)
@@ -73,8 +73,9 @@ def test_new_mobius_label():
         if field == 'DamageNotedOn' or field == 'DamagedNotedUponReturn':
             fields[field] = 'Yes'
             continue
+        fields[field] = field
         # fields[field] = 'this is a test\nmultiline1\nmultiline2\nmultiline3\nmultiline4'
-        fields[field] = '-----+++++-----+++++-----+++++-----+++++-----+++++-----+++++-----+++++'
+        # fields[field] = '-----+++++-----+++++-----+++++-----+++++-----+++++-----+++++-----+++++'
         # max_terminal_width = 57
     print(fields)
 
@@ -82,7 +83,7 @@ def test_new_mobius_label():
 
     images = convert_from_path(mobius_output_pdf, poppler_path='Release-24.07.0-0\\poppler-24.07.0\\Library\\bin')
     for index, img in enumerate(images):
-        img.save(f'test{mobius_output_pdf}{index}.png', 'PNG')
+        img.save(f'{mobius_output_pdf}{index}.png', 'PNG')
     
 
 
