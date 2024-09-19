@@ -97,6 +97,7 @@ import os
 def test_reportlab_tables():
     NUM_COLUMNS = 2
     NUM_ROWS = 4
+    TOTAL_LABELS = NUM_COLUMNS * NUM_ROWS
     
     LETTER_WIDTH = 8.5 * inch
     LETTER_HEIGHT = 11 * inch
@@ -106,13 +107,26 @@ def test_reportlab_tables():
 
     filename = 'test_label_sheet.pdf'
     canvas = Canvas(filename, pagesize=letter)
-    canvas.drawImage('mobius_output.pdf0.png',
-                     x=0,
-                     y=0,
-                     width=LABEL_WIDTH,
-                     height=LABEL_HEIGHT
-                     )
-    canvas.showPage()
+    
+    img_dir = 'imgs-test'
+    img_list = os.listdir(img_dir)
+    for i, f in enumerate(img_list):
+        img_list[i] = os.path.join(img_dir, f)
+
+    for index, img in enumerate(img_list):
+        print(img)
+        page_position = index % TOTAL_LABELS # 8 positions on the page
+        x_offset = page_position % NUM_COLUMNS # left or right, which of the columns
+        y_offset = page_position // NUM_COLUMNS # integer division, which of the rows
+        
+        canvas.drawImage(img,
+                        x=LABEL_WIDTH * x_offset,
+                        y=LABEL_HEIGHT * y_offset,
+                        width=LABEL_WIDTH,
+                        height=LABEL_HEIGHT)
+        
+        if page_position >= (TOTAL_LABELS - 1): # prevents overlap, >= used to catch rare exceptions
+            canvas.showPage() # moves on to next page
     canvas.save()
     os.startfile(filename)
 
@@ -121,4 +135,10 @@ def test_reportlab_tables():
 # test_pypdf2()
 # test_pdf_to_img()
 # test_new_mobius_label()
+
 test_reportlab_tables()
+# for i in range(10):
+#     pos = i % 8
+#     xoff = pos % 2
+#     yoff = pos // 2
+#     print(pos, xoff, yoff)
