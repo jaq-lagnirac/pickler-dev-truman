@@ -84,17 +84,41 @@ def test_new_mobius_label():
     images = convert_from_path(mobius_output_pdf, poppler_path='Release-24.07.0-0\\poppler-24.07.0\\Library\\bin')
     for index, img in enumerate(images):
         img.save(f'{mobius_output_pdf}{index}.png', 'PNG')
+        for i in range(8):
+            img.save(f'{mobius_output_pdf}{index}-{i}.png', 'PNG')
     
 
 
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
+from reportlab.pdfgen.canvas import Canvas
+import os
 def test_reportlab_tables():
-    pass
+    NUM_COLUMNS = 2
+    NUM_ROWS = 4
+    
+    LETTER_WIDTH = 8.5 * inch
+    LETTER_HEIGHT = 11 * inch
+
+    LABEL_WIDTH = LETTER_WIDTH / NUM_COLUMNS
+    LABEL_HEIGHT = LETTER_HEIGHT / NUM_ROWS
+
+    filename = 'test_label_sheet.pdf'
+    canvas = Canvas(filename, pagesize=letter)
+    canvas.drawImage('mobius_output.pdf0.png',
+                     x=0,
+                     y=0,
+                     width=LABEL_WIDTH,
+                     height=LABEL_HEIGHT
+                     )
+    canvas.showPage()
+    canvas.save()
+    os.startfile(filename)
 
 
 # test_fillpdf()
 # test_pypdf2()
 # test_pdf_to_img()
-test_new_mobius_label()
+# test_new_mobius_label()
+test_reportlab_tables()
