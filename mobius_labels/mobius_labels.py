@@ -31,25 +31,65 @@ def error_msg(msg : str = 'Unknown error occured.') -> None:
     error.mainloop()
     sys.exit(1)
 
-# checks for existence of config.json file, notifies user if none available -jaq
-if not os.path.exists('config.json'):
-    error_msg('\"config.json\" not detected in working directory.')
 
-# Setup FOLIO variables
-login = None # scope resolution
-with open('config.json' ,'r') as config:
-    login = json.load(config)
+def login_folioclient() -> folioclient.FolioClient:
+    """Organizes initial handshake with FOLIOClient -jaq
+    
+    A function which handles the possible exceptions on start-up
+    and, if everything is in order, logs into the FOLIOClient API
+    
+    Args:
+        None
+    
+    Returns:
+        FolioClient: Returns an API object to the FOLIOClient
+    """
 
-# checks to ensure config file is set up correctly -jaq
-REQUIRED_KEYS = {'okapi_url', 'tenant', 'username', 'password'}
-if REQUIRED_KEYS in login.keys():
-    error_msg('\"config.json\" improperly set up.')
+    # checks for existence of config.json file, notifies user if none available -jaq
+    if not os.path.exists('config.json'):
+        error_msg('\"config.json\" not detected in working directory.')
 
-okapi_url = login['okapi_url']
-tenant = login['tenant']
-username = login['username']
-password = login['password']
-try:
-    f = folioclient.FolioClient(okapi_url, tenant, username, password)
-except:
-    error_msg('Cannot connect to FolioClient')
+    # Setup FOLIO variables
+    login = None # scope resolution
+    with open('config.json' ,'r') as config:
+        login = json.load(config)
+
+    # checks to ensure config file is set up correctly -jaq
+    REQUIRED_KEYS = {'okapi_url', 'tenant', 'username', 'password'}
+    if login.keys() != REQUIRED_KEYS:
+        error_msg('\"config.json\" improperly set up.')
+
+    okapi_url = login['okapi_url']
+    tenant = login['tenant']
+    username = login['username']
+    password = login['password']
+    try:
+        f = folioclient.FolioClient(okapi_url, tenant, username, password)
+    except:
+        error_msg('Cannot connect to FolioClient')
+
+    return f
+
+### TESTING QUERIES ###
+
+f = login_folioclient()
+requests = f.folio_get_all(path='request-storage/requests',key='requests',query='requestType=="Page" and status=="Open - Not yet filled"',limit=200)
+import pprint
+for x in requests:
+    
+    # pprint.pprint(x)
+    
+    item_id = x['itemId']
+    item = f.folio_get_single_object(path=f'inventory/items/{item_id}')
+    # pprint.pprint(item)
+
+    # print('\n\n')
+    print(x['instance']['title'])
+    print(x['searchIndex']['callNumberComponents']['callNumber'])
+    print(x['searchIndex']['shelvingOrder']) ### sorting by shelving order, not displaying
+    print(x['searchIndex']['pickupServicePointName'])
+    print(f'{x['requester']['lastName']} {x['requester']['barcode']}')
+    print(item['effectiveLocation']['name'])
+
+
+    break
