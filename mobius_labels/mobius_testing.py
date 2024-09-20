@@ -1,3 +1,5 @@
+# Justin Caringal
+# my redstone test world for mobius labels
 import sys
 
 input_pdf = 'fillable_form.pdf'
@@ -84,14 +86,14 @@ def test_new_mobius_label():
     images = convert_from_path(mobius_output_pdf, poppler_path='Release-24.07.0-0\\poppler-24.07.0\\Library\\bin')
     for index, img in enumerate(images):
         img.save(f'{mobius_output_pdf}{index}.png', 'PNG')
-        for i in range(8):
+        for i in range(11):
             img.save(f'{mobius_output_pdf}{index}-{i}.png', 'PNG')
-    
+            
 
-
+sheet_output = 'test_label_sheet.pdf'
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.units import inch
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
+# from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
 from reportlab.pdfgen.canvas import Canvas
 import os
 def test_reportlab_tables():
@@ -105,8 +107,7 @@ def test_reportlab_tables():
     LABEL_WIDTH = LETTER_WIDTH / NUM_COLUMNS
     LABEL_HEIGHT = LETTER_HEIGHT / NUM_ROWS
 
-    filename = 'test_label_sheet.pdf'
-    canvas = Canvas(filename, pagesize=letter)
+    canvas = Canvas(sheet_output, pagesize=letter)
     
     img_dir = 'imgs-test'
     img_list = os.listdir(img_dir)
@@ -121,14 +122,14 @@ def test_reportlab_tables():
         
         canvas.drawImage(img,
                         x=LABEL_WIDTH * x_offset,
-                        y=LABEL_HEIGHT * y_offset,
+                        y=LETTER_HEIGHT - (LABEL_HEIGHT * (1 + y_offset)),
                         width=LABEL_WIDTH,
                         height=LABEL_HEIGHT)
         
         if page_position >= (TOTAL_LABELS - 1): # prevents overlap, >= used to catch rare exceptions
             canvas.showPage() # moves on to next page
     canvas.save()
-    os.startfile(filename)
+    os.startfile(sheet_output)
 
 
 # test_fillpdf()
@@ -142,3 +143,7 @@ test_reportlab_tables()
 #     xoff = pos % 2
 #     yoff = pos // 2
 #     print(pos, xoff, yoff)
+
+# to recursively delete a dir
+# https://docs.python.org/3/library/shutil.html#shutil.rmtree
+# https://stackoverflow.com/a/13118112
