@@ -2,12 +2,17 @@
 # [PROGRAM PURPOSE]
 # Project start date (for jaq): 2024-09-13
 # Project end date: TBD
+
+### LIBRARIES / PACKAGES
 import tkinter as tk
 import folioclient
 from reportlab.pdfgen.canvas import Canvas
 import os
 import sys
 import json
+from typing import Generator
+
+### FUNCTIONS ###
 
 def error_msg(msg : str = 'Unknown error occured.') -> None:
     """Pops up to user and shows error -jaq
@@ -63,6 +68,7 @@ def login_folioclient() -> folioclient.FolioClient:
     tenant = login['tenant']
     username = login['username']
     password = login['password']
+    f = None # scope resolution
     try:
         f = folioclient.FolioClient(okapi_url, tenant, username, password)
     except:
@@ -70,26 +76,106 @@ def login_folioclient() -> folioclient.FolioClient:
 
     return f
 
+
+# NOTE: unsure if Generator annotated correctly
+def extract_info_list(f : folioclient.FolioClient,
+                      requests_query : Generator[None, str, str]) -> list:
+    """Extracts relevant info from queries -jaq
+    
+    A function which loops over the returned requests query, extracts
+    the relevant info from each request, and stores it in a list of 
+    dictionaries
+    
+    Args:
+        requests_query (folioclient.generator): a non-iterable object
+            containing all of the FOLIO queries
+    
+    Returns:
+        list: Returns a list the relevant query info
+    """
+
+    info_list = [] # list of dicts to be returned
+    for request in requests_query:
+
+        # queries itemId to extract effectiveLocation of the object
+        item_id = request['itemId']
+        item = None # scope resolution
+        try:
+            item = f.folio_get_single_object(path=f'inventory/items/{item_id}')
+        except:
+            error_msg('Error occured with itemID extraction.') 
+
+        # dict to store info per request
+        request_info = None # scope resolution
+        try:
+            request_info = { # primary key = shelvingOrder, not displaying
+                'title' : request['instance']['title'],
+                'callNumber' : request['searchIndex']['callNumberComponents']['callNumber'],
+                'shelvingOrder' : request['searchIndex']['shelvingOrder'], # primary key
+                'sendTo' : request['searchIndex']['pickupServicePointName'],
+                'patron' : f'{request['requester']['lastName']} {request['requester']['barcode']}',
+                'location' : item['effectiveLocation']['name']
+            }
+        except:
+            error_msg('Error occured with request info dict assembly; missing fields.')
+        
+        # adds info to list
+        info_list.append(request_info)
+    
+    # returns sorted list; sorted based off primary key (shelvingOrder)
+    return sorted(info_list, key=lambda request_info : request_info['shelvingOrder'])
+
+
+def main():
+    """THE MAIN FUNCTION"""
+
+    f = login_folioclient() # generates FolioClient object
+
+    # querying FOLIOClient API
+    requests_query = f.folio_get_all(path='request-storage/requests',
+                                     key='requests',
+                                     query='requestType==\"Page\" and status==\"Open - Not yet filled\"',
+                                     limit=200)
+
+    # extracting relevant info from requests_query
+    requests_list = extract_info_list(f, requests_query)
+    
+    import pprint
+    pprint.pprint(requests_list)
+    print('\n\n')
+    for x in requests_list:
+        print(x['shelvingOrder'])
+    print('\n\n')
+
 ### TESTING QUERIES ###
+def test():
+    f = login_folioclient()
+    requests = f.folio_get_all(path='request-storage/requests',
+                               key='requests',
+                               query='requestType=="Page" and status=="Open - Not yet filled"',
+                               limit=200)
 
-f = login_folioclient()
-requests = f.folio_get_all(path='request-storage/requests',key='requests',query='requestType=="Page" and status=="Open - Not yet filled"',limit=200)
-import pprint
-for x in requests:
-    
-    # pprint.pprint(x)
-    
-    item_id = x['itemId']
-    item = f.folio_get_single_object(path=f'inventory/items/{item_id}')
-    # pprint.pprint(item)
+    import pprint
+    for x in requests:
+        
+        # pprint.pprint(x)
+        # print('\n\n')
 
-    # print('\n\n')
-    print(x['instance']['title'])
-    print(x['searchIndex']['callNumberComponents']['callNumber'])
-    print(x['searchIndex']['shelvingOrder']) ### sorting by shelving order, not displaying
-    print(x['searchIndex']['pickupServicePointName'])
-    print(f'{x['requester']['lastName']} {x['requester']['barcode']}')
-    print(item['effectiveLocation']['name'])
+        item_id = x['itemId']
+        item = f.folio_get_single_object(path=f'inventory/items/{item_id}')
+        # pprint.pprint(item)
+        print('\n\n')
+
+        print(x['instance']['title'])
+        print(x['searchIndex']['callNumberComponents']['callNumber'])
+        print(x['searchIndex']['shelvingOrder']) ### sorting by shelving order, not displaying
+        print(x['searchIndex']['pickupServicePointName'])
+        print(f'{x['requester']['lastName']} {x['requester']['barcode']}')
+        print(item['effectiveLocation']['name'])
+
+        # break
 
 
-    break
+if __name__ == '__main__':
+    main()
+    # test()
