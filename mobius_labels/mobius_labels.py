@@ -3,14 +3,53 @@
 # Project start date (for jaq): 2024-09-13
 # Project end date: TBD
 
-### LIBRARIES / PACKAGES
+### LIBRARIES / PACKAGES ###
+
 import tkinter as tk
-import folioclient
-from reportlab.pdfgen.canvas import Canvas
 import os
 import sys
 import json
+import time
+import shutil
 from typing import Generator
+import folioclient
+from fillpdf import fillpdfs
+from pdf2image import convert_from_path
+from reportlab.pdfgen.canvas import Canvas
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.units import inch
+
+### GLOBAL CONSTANTS/VARIABLES ###
+
+# scope resolution for global variables extracted from config.json
+# lib_code = None
+# supplied_by = None
+# test code for global vars
+lib_code = 'TRUMN'
+supplied_by = '''Pickler Memorial Library
+Truman State University
+100 E Normal St.
+Kirksville, MO 63501'''
+
+TEMPDIR = '.tmp' # temporary directory to store intermediary generated files
+
+# keys required in config.json
+REQUIRED_CONFIG_KEYS = {
+    'okapi_url',
+    'tenant',
+    'username',
+    'password'
+    }
+
+# dynamic keys for pdf generation
+DYNAMIC_KEYS = {
+    'Title',
+    'CallNumber',
+    'ShelvingOrder',
+    'SendTo',
+    'Patron',
+    'Location'
+    }
 
 ### FUNCTIONS ###
 
@@ -18,8 +57,8 @@ def error_msg(msg : str = 'Unknown error occured.') -> None:
     """Pops up to user and shows error -jaq
     
     A function which organizes the creation of a TKinter box
-    to show error, after which the system exits and terminates
-    the program
+    to show error and clean-up operations, after which the
+    system exits and terminates the program
     
     Args:
         msg (str): the message the user sees
@@ -27,9 +66,14 @@ def error_msg(msg : str = 'Unknown error occured.') -> None:
     Returns:
         None, terminates program
     """
+    # removes temp working sub-directory
+    if os.path.exists(TEMPDIR):
+        shutil.rmtree(TEMPDIR)
+
+    # displays error window
     error = tk.Tk()
     error.title("Error")
-    error.geometry('350x200')
+    # error.geometry('350x200')
     tk.Label(error, text = msg).grid(row = 0, column = 1)
     button = tk.Button(error, text = "Cancel", width=25, command = error.destroy)
     button.grid(row = 1, column = 1)
@@ -60,9 +104,8 @@ def login_folioclient() -> folioclient.FolioClient:
         login = json.load(config)
 
     # checks to ensure config file is set up correctly -jaq
-    REQUIRED_KEYS = {'okapi_url', 'tenant', 'username', 'password'}
-    if login.keys() != REQUIRED_KEYS:
-        error_msg('\"config.json\" improperly set up.')
+    if login.keys() != REQUIRED_CONFIG_KEYS:
+        error_msg('\"config.json\" improperly set up.\nPlease check keys.')
 
     okapi_url = login['okapi_url']
     tenant = login['tenant']
@@ -71,8 +114,8 @@ def login_folioclient() -> folioclient.FolioClient:
     f = None # scope resolution
     try:
         f = folioclient.FolioClient(okapi_url, tenant, username, password)
-    except:
-        error_msg('Cannot connect to FolioClient')
+    except Exception as e:
+        error_msg(f'Cannot connect to FolioClient.\n{e}')
 
     return f
 
@@ -102,28 +145,47 @@ def extract_info_list(f : folioclient.FolioClient,
         item = None # scope resolution
         try:
             item = f.folio_get_single_object(path=f'inventory/items/{item_id}')
-        except:
-            error_msg('Error occured with itemID extraction.') 
+        except Exception as e:
+            error_msg(f'Error occured with itemID extraction.\n{e}') 
 
         # dict to store info per request
         request_info = None # scope resolution
         try:
             request_info = { # primary key = shelvingOrder, not displaying
-                'title' : request['instance']['title'],
-                'callNumber' : request['searchIndex']['callNumberComponents']['callNumber'],
-                'shelvingOrder' : request['searchIndex']['shelvingOrder'], # primary key
-                'sendTo' : request['searchIndex']['pickupServicePointName'],
-                'patron' : f'{request['requester']['lastName']} {request['requester']['barcode']}',
-                'location' : item['effectiveLocation']['name']
-            }
-        except:
-            error_msg('Error occured with request info dict assembly; missing fields.')
+                'Title' : request['instance']['title'],
+                'CallNumber' : request['searchIndex']['callNumberComponents']['callNumber'],
+                'ShelvingOrder' : request['searchIndex']['shelvingOrder'], # primary key
+                'SendTo' : request['searchIndex']['pickupServicePointName'],
+                'Patron' : f'{request['requester']['lastName']} {request['requester']['barcode']}',
+                'Location' : item['effectiveLocation']['name']
+            } # NOTE: these are identical to the PDF labels to allow for ease-of-input
+        except Exception as e:
+            error_msg(f'Error occured with request info dict assembly; missing fields.\n{e}')
         
-        # adds info to list
-        info_list.append(request_info)
+        info_list.append(request_info) # adds info to list
     
     # returns sorted list; sorted based off primary key (shelvingOrder)
-    return sorted(info_list, key=lambda request_info : request_info['shelvingOrder'])
+    return sorted(info_list, key=lambda request_info : request_info['ShelvingOrder'])
+
+
+def generate_label(template_pdf : str,
+                   request : dict,
+                   index : int) -> None:
+    """placeholder description"""
+    output_pdf = os.path.join(TEMPDIR, f'{index}.pdf')
+    # TODO: NEED TO ADD ON LIBCODE AND SUPPLIEDBY TO REQUEST DICT
+    fillpdfs.write_fillable_pdf(template_pdf, output_pdf, request)
+
+
+def generate_label_sheet(request_list : list) -> None:
+    """placeholder description"""
+
+    iso8601_timecode = time.strftime('%Y%m%d_%H%M%S', time.localtime())
+    sheet_name = f'{iso8601_timecode}_label_sheet.pdf'
+    if not os.path.exists(TEMPDIR):
+        os.makedirs(TEMPDIR)
+    for index, request in request_list:
+        pass
 
 
 def main():
@@ -144,38 +206,9 @@ def main():
     pprint.pprint(requests_list)
     print('\n\n')
     for x in requests_list:
-        print(x['shelvingOrder'])
+        print(x['ShelvingOrder'])
     print('\n\n')
-
-### TESTING QUERIES ###
-def test():
-    f = login_folioclient()
-    requests = f.folio_get_all(path='request-storage/requests',
-                               key='requests',
-                               query='requestType=="Page" and status=="Open - Not yet filled"',
-                               limit=200)
-
-    import pprint
-    for x in requests:
-        
-        # pprint.pprint(x)
-        # print('\n\n')
-
-        item_id = x['itemId']
-        item = f.folio_get_single_object(path=f'inventory/items/{item_id}')
-        # pprint.pprint(item)
-        print('\n\n')
-
-        print(x['instance']['title'])
-        print(x['searchIndex']['callNumberComponents']['callNumber'])
-        print(x['searchIndex']['shelvingOrder']) ### sorting by shelving order, not displaying
-        print(x['searchIndex']['pickupServicePointName'])
-        print(f'{x['requester']['lastName']} {x['requester']['barcode']}')
-        print(item['effectiveLocation']['name'])
-
-        # break
 
 
 if __name__ == '__main__':
     main()
-    # test()
