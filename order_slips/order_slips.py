@@ -42,7 +42,7 @@ with open('config.json' ,'r') as config:
 
 # checks to ensure config file is set up correctly -jaq
 REQUIRED_KEYS = {'okapi_url', 'tenant', 'username', 'password'}
-if login.keys() != REQUIRED_KEYS:
+if not REQUIRED_KEYS.issubset(set(login.keys())): # if required keys not in login
     error_msg('\"config.json\" improperly set up.')
 
 okapi_url = login['okapi_url']
