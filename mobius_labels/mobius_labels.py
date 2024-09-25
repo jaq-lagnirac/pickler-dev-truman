@@ -110,9 +110,10 @@ def login_folioclient() -> folioclient.FolioClient:
     login = None # scope resolution
     with open('config.json' ,'r') as config:
         login = json.load(config)
-
+    print(REQUIRED_CONFIG_KEYS)
+    print(set(login.keys()))
     # checks to ensure config file is set up correctly -jaq
-    if login.keys() != REQUIRED_CONFIG_KEYS:
+    if not REQUIRED_CONFIG_KEYS.issubset(set(login.keys())): # if required keys not in login
         error_msg('\"config.json\" improperly set up.\nPlease check keys.')
 
     okapi_url = login['okapi_url']
@@ -199,11 +200,11 @@ def generate_label(template_pdf : str,
     """
 
     # generates temporary output pdf
-    tmp_output_pdf = os.path.join(TEMPDIR, f'{sorting_code}.pdf')
+    tmp_output_pdf = os.path.join(TEMPDIR, f'.tmp_{sorting_code}.pdf')
     fillpdfs.write_fillable_pdf(template_pdf, tmp_output_pdf, request)
 
     # saves temporary pdf as png, should only be one pdf page
-    output_png = os.path.join(TEMPDIR, f'{sorting_code}.png') # png chosen for lossless compression
+    output_png = os.path.join(TEMPDIR, f'.tmp_{sorting_code}.png') # png chosen for lossless compression
     images = convert_from_path(tmp_output_pdf, # list of images
                                poppler_path='Release-24.07.0-0\\poppler-24.07.0\\Library\\bin')
     images[0].save(output_png, 'PNG') # saves the first (and only) pdf page as a png
@@ -333,14 +334,31 @@ def clicked() -> None:
         print(x['ShelvingOrder'])
     print('\n\n')
 
-
+from PIL import ImageTk, Image
 def main():
     """THE MAIN FUNCTION"""
     root = tk.Tk()
-
     root.title('Mobius Label Generator')
+
+    IMAGE_MULTIPLIER = 0.2
+    image = Image.open('logo-black-transparent.png') # opens image
+    image = image.resize(size=[int(IMAGE_MULTIPLIER * length) for length in image.size])
+    logo = ImageTk.PhotoImage(image) # converts image to format usable by Tkinter
+    tk.Label(root, image=logo).grid(row=0, column=0)
+
+    frame = tk.Frame(root, bg='#000fff000', height=250, width=500).grid(row=1, column=0)
+
+    tk.Label(frame, text='Relative path to template PDF:').grid(row=1, column=0)
+    template_relpath = tk.Entry(frame)
+    template_relpath.grid(row=1, column=1)
+    
+    description_txt = 'Developed by Justin Caringal, Pickler Memorial Library, Truman State University'
+    description = tk.Label(root, text=description_txt, anchor='e', justify='left')
+    description.grid(row=100, column=0)
+
+    root.mainloop()
 
 
 if __name__ == '__main__':
-    # main()
-    clicked()
+    main()
+    # clicked()
