@@ -1,5 +1,9 @@
 # Justin Caringal, Stephen Wynn
-# [PROGRAM PURPOSE]
+#
+# A program to make requests to the FolioClient API on inter-library orders and
+# generate a label sheet PDF in order to facilitate the easy transfer of
+# requested materials between libraries
+#
 # Project start date (for jaq): 2024-09-13
 # Project end date: TBD
 
@@ -18,6 +22,8 @@ from pdf2image import convert_from_path
 from reportlab.pdfgen.canvas import Canvas
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.units import inch
+from PIL import ImageTk, Image
+# from tksvg import SvgImage
 
 ### GLOBAL CONSTANTS/VARIABLES ###
 
@@ -46,16 +52,43 @@ REQUIRED_CONFIG_KEYS = {
     }
 
 # dynamic keys for pdf generation
-DYNAMIC_KEYS = {
+REQUIRED_PDF_KEYS = {
     'Title',
     'CallNumber',
-    'ShelvingOrder',
     'SendTo',
     'Patron',
-    'Location'
-    }
+    'Location',
+    'LibCode',
+    'SuppliedBy'
+    } # ShelvingOrder not required by PDF but searched for by system
 
 ### FUNCTIONS ###
+
+def update_warning(entry : tk.Event) -> None:
+    """Updates offset_warning based off of input
+    
+    A function which updates a tkinter Label based off of
+    the input to the offset_value Entry
+    
+    Args:
+        entry (str): The user-inputted entry
+    
+    Returns:
+        None
+
+    https://stackoverflow.com/a/73126296
+    """
+
+    user_offset = offset_value.get()
+    # if none of the following conditions are met
+    if not (user_offset.isdigit() and int(user_offset) <= 7 and int(user_offset) >=0):
+        offset_msg.config(text='Offset must be a number between 0-7.',
+                          fg='#ff0000')
+    else:
+        offset_msg.config(text='Valid offset.',
+                          fg='#00ff00')
+
+
 
 def error_msg(msg : str = 'Unknown error occured.') -> None:
     """Pops up to user and shows error -jaq
@@ -102,16 +135,17 @@ def login_folioclient() -> folioclient.FolioClient:
     global LIB_CODE
     global SUPPLIED_BY
 
+    config_name = config_relpath.get()
+
     # checks for existence of config.json file, notifies user if none available -jaq
-    if not os.path.exists('config.json'):
-        error_msg('\"config.json\" not detected in working directory.')
+    if not os.path.exists(config_name):
+        error_msg(f'\"{config_name}\" not detected.')
 
     # Setup FOLIO variables
     login = None # scope resolution
-    with open('config.json' ,'r') as config:
+    with open(config_name ,'r') as config:
         login = json.load(config)
-    print(REQUIRED_CONFIG_KEYS)
-    print(set(login.keys()))
+
     # checks to ensure config file is set up correctly -jaq
     if not REQUIRED_CONFIG_KEYS.issubset(set(login.keys())): # if required keys not in login
         error_msg('\"config.json\" improperly set up.\nPlease check keys.')
@@ -207,6 +241,7 @@ def generate_label(template_pdf : str,
     output_png = os.path.join(TEMPDIR, f'.tmp_{sorting_code}.png') # png chosen for lossless compression
     images = convert_from_path(tmp_output_pdf, # list of images
                                poppler_path='Release-24.07.0-0\\poppler-24.07.0\\Library\\bin')
+    # NOTE: Poppler installation https://stackoverflow.com/a/70095504
     images[0].save(output_png, 'PNG') # saves the first (and only) pdf page as a png
 
     # deletes temporary output pdf, keeps png
@@ -306,7 +341,8 @@ def generate_label_sheet() -> None:
 def clicked() -> None:
     """The response to clicking the Enter button
     
-    A function which organizes the login actions to FolioClient
+    A function which validates the user inputs,
+    organizes the login actions to FolioClient,
     and handles the label sheet PDF generation
     
     Args:
@@ -316,7 +352,14 @@ def clicked() -> None:
         None
     """
 
-    f = login_folioclient() # generates FolioClient object
+    # checks to make sure template has all valid keys
+    template_pdf_path = template_relpath.get()
+    template_keys = fillpdfs.get_form_fields(template_pdf_path)
+    if not REQUIRED_PDF_KEYS.issubset(set(template_keys.keys())):
+        error_msg(f'{template_pdf_path} does not have required keys.' + \
+                  f'\nCurrent keys: {set(template_keys.keys())}')
+
+    f = login_folioclient() # config.json validation, generates FolioClient object
 
     # querying FOLIOClient API
     requests_query = f.folio_get_all(path='request-storage/requests',
@@ -334,31 +377,62 @@ def clicked() -> None:
         print(x['ShelvingOrder'])
     print('\n\n')
 
-from PIL import ImageTk, Image
-def main():
-    """THE MAIN FUNCTION"""
+
+# main loop functionality
+if __name__ == '__main__':
+    FONT_TUPLE = ('Verdana', 10)
+    INPUT_WIDTH = 100
+    IMAGE_MULTIPLIER = 0.2
+    DEFAULT_TEMPLATE_NAME = os.path.join(os.getcwd(), 'mobius_label.pdf')
+    DEFAULT_CONFIG_NAME = os.path.join(os.getcwd(), 'config.json')
+    DEFAULT_OFFSET_VALUE = '0'
+    
     root = tk.Tk()
     root.title('Mobius Label Generator')
 
-    IMAGE_MULTIPLIER = 0.2
-    image = Image.open('mobius_output.pdf0.png') # opens image
+    # logo = SvgImage(file='logo-black-transparent.svg') # opens image
+    image = Image.open('logo-black-transparent.png') # opens image
     image = image.resize(size=[int(IMAGE_MULTIPLIER * length) for length in image.size])
     logo = ImageTk.PhotoImage(image) # converts image to format usable by Tkinter
-    tk.Label(root, image=logo).grid(row=0, column=0)
+    tk.Label(root, image=logo).grid(row=0, column=0, columnspan=100)
 
-    frame = tk.Frame(root, bg='#000fff000', height=250, width=500).grid(row=1, column=0)
+    # requests path of template PDF
+    template_txt = tk.Label(root, text='Path to template PDF:\t', font=FONT_TUPLE)
+    template_txt.grid(sticky='W', row=1, column=0)
+    template_relpath = tk.Entry(root)
+    template_relpath.grid(sticky='E', row=1, column=1, ipadx=INPUT_WIDTH)
+    template_relpath.insert(0, DEFAULT_TEMPLATE_NAME) # default value
 
-    tk.Label(frame, text='Relative path to template PDF:').grid(row=1, column=0)
-    template_relpath = tk.Entry(frame)
-    template_relpath.grid(row=1, column=1)
-    
-    description_txt = 'Developed by Justin Caringal, Pickler Memorial Library, Truman State University'
-    description = tk.Label(root, text=description_txt, anchor='e', justify='left')
-    description.grid(row=100, column=0)
+    # requests path of config.json
+    config_txt = tk.Label(root, text='Path to configuration file:\t', font=FONT_TUPLE)
+    config_txt.grid(sticky='W', row=2, column=0)
+    config_relpath = tk.Entry(root)
+    config_relpath.grid(sticky='E', row=2, column=1, ipadx=INPUT_WIDTH)
+    config_relpath.insert(0, DEFAULT_CONFIG_NAME) # default value
 
+    # requests label offset (to allow for printing on not used label sheets)
+    label_offset_txt = tk.Label(root, text='Label offset value (0-7):\t', font=FONT_TUPLE)
+    label_offset_txt.grid(sticky='W', row=3, column=0)
+    # validation commands for offset
+    validate_offset = lambda char : char.isdigit() and int(char) <= 7 and int(char) >= 0
+    vcmd = (validate_offset, '%S')
+    offset_value = tk.Entry(root, validate='key', validatecommand=vcmd)
+    offset_value.grid(sticky='E', row=3, column=1, ipadx=INPUT_WIDTH)
+    offset_value.insert(0, DEFAULT_OFFSET_VALUE) # default value
+    # automatic checking every time offset is inputted
+    offset_value.bind('<KeyRelease>', update_warning)
+    # label which is updated live on if offset input is valid
+    offset_msg = tk.Label(root, text='', font=FONT_TUPLE)
+    offset_msg.grid(sticky='W', row=4, column=0, columnspan=2)
+
+    # bottom credits
+    tk.Label(root, text='\n').grid(row=99, column=0, columnspan=100) # spacer
+    description = tk.Label(root,
+                           text='Developed by Justin Caringal, ' + \
+                           'Pickler Memorial Library, Truman State University',
+                           justify='left',
+                           font=('Verdana', 8))
+    description.grid(sticky='W', row=100, column=0, columnspan=100)
+
+    clicked()
     root.mainloop()
-
-
-if __name__ == '__main__':
-    main()
-    # clicked()
