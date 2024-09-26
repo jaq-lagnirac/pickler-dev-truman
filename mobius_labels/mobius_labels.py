@@ -167,7 +167,7 @@ def extract_info_list(f : folioclient.FolioClient,
                 'CallNumber' : request['searchIndex']['callNumberComponents']['callNumber'],
                 'ShelvingOrder' : request['searchIndex']['shelvingOrder'], # primary key
                 'SendTo' : request['searchIndex']['pickupServicePointName'],
-                'Patron' : f'{request['requester']['lastName']} {request['requester']['barcode']}',
+                'Patron' : f'{request["requester"]["lastName"]} {request["requester"]["barcode"]}',
                 'Location' : item['effectiveLocation']['name'],
                 'LibCode' : LIB_CODE,
                 'SuppliedBy' : SUPPLIED_BY
@@ -341,7 +341,7 @@ def main():
     root.title('Mobius Label Generator')
 
     IMAGE_MULTIPLIER = 0.2
-    image = Image.open('logo-black-transparent.png') # opens image
+    image = Image.open('mobius_output.pdf0.png') # opens image
     image = image.resize(size=[int(IMAGE_MULTIPLIER * length) for length in image.size])
     logo = ImageTk.PhotoImage(image) # converts image to format usable by Tkinter
     tk.Label(root, image=logo).grid(row=0, column=0)
