@@ -472,7 +472,7 @@ if __name__ == '__main__':
     offset_value.bind('<KeyRelease>', update_warning)
     # label which is updated live on if offset input is valid
     offset_msg = tk.Label(root, text='\n\n\n\n\n\n\n\n', font=FONT_TUPLE)
-    offset_msg.grid(sticky='E', 
+    offset_msg.grid(sticky='W', 
                     row=OFFSET_ROW + 1,
                     column=OFFSET_COLUMN,
                     columnspan=100)
