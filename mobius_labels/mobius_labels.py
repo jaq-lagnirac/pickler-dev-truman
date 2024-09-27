@@ -15,6 +15,7 @@ import sys
 import json
 import time
 import shutil
+import webbrowser as wb
 from typing import Generator
 import folioclient
 from fillpdf import fillpdfs
@@ -26,6 +27,10 @@ from PIL import ImageTk, Image
 # from tksvg import SvgImage
 
 ### GLOBAL CONSTANTS/VARIABLES ###
+
+REPO_LINK = 'https://github.com/jaq-lagnirac/'
+SUCCESS_COL = '#00dd00'
+FAIL_COL = '#ff0000'
 
 # scope resolution for global variables extracted from config.json
 # capitalized because these are essentially constants, they won't be
@@ -65,13 +70,13 @@ REQUIRED_PDF_KEYS = {
 ### FUNCTIONS ###
 
 def update_warning(entry : tk.Event) -> None:
-    """Updates offset_warning based off of input
+    """Updates offset_warning based off of input.
     
     A function which updates a tkinter Label based off of
     the input to the offset_value Entry
     
     Args:
-        entry (str): The user-inputted entry
+        entry (str): The user-inputted entry, not interacted with
     
     Returns:
         None
@@ -82,16 +87,27 @@ def update_warning(entry : tk.Event) -> None:
     user_offset = offset_value.get()
     # if none of the following conditions are met
     if not (user_offset.isdigit() and int(user_offset) <= 7 and int(user_offset) >=0):
-        offset_msg.config(text='Offset must be a number between 0-7.',
-                          fg='#ff0000')
+        offset_msg.config(text='Offset must be a number between 0-7.\n\n\n\n\n\n\n\n',
+                          fg=FAIL_COL)
     else:
-        offset_msg.config(text='Valid offset.',
-                          fg='#00ff00')
+        # prints offset diagram on if a label will be printed 
+        is_offset = lambda label : 'X' if int(user_offset) <= label else ' '
+        offset_diagram = \
+            f'{is_offset(0)}|{is_offset(1)}\n' + \
+            '---\n' + \
+            f'{is_offset(2)}|{is_offset(3)}\n' + \
+            '---\n' + \
+            f'{is_offset(4)}|{is_offset(5)}\n' + \
+            '---\n' + \
+            f'{is_offset(6)}|{is_offset(7)}\n'
+
+        offset_msg.config(text='Valid offset. \"X\" will be printed.\n' + offset_diagram,
+                          fg=SUCCESS_COL)
 
 
 
 def error_msg(msg : str = 'Unknown error occured.') -> None:
-    """Pops up to user and shows error -jaq
+    """Pops up to user and shows error.
     
     A function which organizes the creation of a TKinter box
     to show error and clean-up operations, after which the
@@ -119,7 +135,7 @@ def error_msg(msg : str = 'Unknown error occured.') -> None:
 
 
 def login_folioclient() -> folioclient.FolioClient:
-    """Organizes initial handshake with FOLIOClient -jaq
+    """Organizes initial handshake with FOLIOClient.
     
     A function which handles the possible exceptions on start-up
     and, if everything is in order, logs into the FOLIOClient API
@@ -148,7 +164,9 @@ def login_folioclient() -> folioclient.FolioClient:
 
     # checks to ensure config file is set up correctly -jaq
     if not REQUIRED_CONFIG_KEYS.issubset(set(login.keys())): # if required keys not in login
-        error_msg('\"config.json\" improperly set up.\nPlease check keys.')
+        error_msg(f'\"{config_name}\" improperly set up.\nPlease check keys.' + \
+                  f'\nDetected keys: {set(login.keys())}' + \
+                  f'\nRequired keys: {REQUIRED_CONFIG_KEYS}')
 
     okapi_url = login['okapi_url']
     tenant = login['tenant']
@@ -167,8 +185,8 @@ def login_folioclient() -> folioclient.FolioClient:
 
 # NOTE: unsure if Generator annotated correctly
 def extract_info_list(f : folioclient.FolioClient,
-                      requests_query : Generator[None, str, str]) -> list:
-    """Extracts relevant info from queries -jaq
+                      requests_query : Generator[str, str, None]) -> list:
+    """Extracts relevant info from queries.
     
     A function which loops over the returned requests query, extracts
     the relevant info from each request, and stores it in a list of 
@@ -218,7 +236,7 @@ def extract_info_list(f : folioclient.FolioClient,
 def generate_label(template_pdf : str,
                    request : dict,
                    sorting_code : int) -> None:
-    """Creates individual label png
+    """Creates individual label png.
     
     A function which takes a template PDF and pipelines the extracted
     request into the template, saves it as a PDF, converts the 
@@ -252,7 +270,7 @@ def generate_label(template_pdf : str,
 
 
 def generate_labels_from_list(template_pdf : str, requests_list : list) -> None:
-    """Organizes PNG generation from requests
+    """Organizes PNG generation from requests.
     
     A function which takes a list of request information, inputs them into individual
     template PDFs, then converts them into PNGs in the temporary working sub-directory
@@ -282,7 +300,7 @@ def generate_labels_from_list(template_pdf : str, requests_list : list) -> None:
 
 
 def generate_label_sheet() -> None:
-    """Stitches together generated PNGs
+    """Stitches together generated PNGs.
     
     A function which stitches together the generated PNG labels
     and generates a printable PDF to the current working directory
@@ -339,7 +357,7 @@ def generate_label_sheet() -> None:
 
 
 def clicked() -> None:
-    """The response to clicking the Enter button
+    """The response to clicking the Enter button.
     
     A function which validates the user inputs,
     organizes the login actions to FolioClient,
@@ -352,12 +370,16 @@ def clicked() -> None:
         None
     """
 
-    # checks to make sure template has all valid keys
     template_pdf_path = template_relpath.get()
+    # checks to see if template pdf file exists
+    if not os.path.exists(template_pdf_path):
+        error_msg(f'\"{template_pdf_path}\" not detected.')
+    # checks to make sure template has all valid keys
     template_keys = fillpdfs.get_form_fields(template_pdf_path)
     if not REQUIRED_PDF_KEYS.issubset(set(template_keys.keys())):
         error_msg(f'{template_pdf_path} does not have required keys.' + \
-                  f'\nCurrent keys: {set(template_keys.keys())}')
+                  f'\nDetected keys: {set(template_keys.keys())}' + \
+                  f'\nRequired keys: {REQUIRED_PDF_KEYS}')
 
     f = login_folioclient() # config.json validation, generates FolioClient object
 
@@ -369,70 +391,115 @@ def clicked() -> None:
 
     # extracting relevant info from requests_query
     requests_list = extract_info_list(f, requests_query)
-    
-    import pprint
-    pprint.pprint(requests_list)
-    print('\n\n')
-    for x in requests_list:
-        print(x['ShelvingOrder'])
-    print('\n\n')
+
+    generate_labels_from_list(template_pdf_path, requests_list)
+
+    # import pprint
+    # pprint.pprint(requests_list)
+    # print('\n\n')
+    # for x in requests_list:
+    #     print(x['ShelvingOrder'])
+    #     for y in x:
+    #         print(y, x[y])
+    # print('\n\n')
+
+    status.config(text='Success!', fg=SUCCESS_COL) # maybe change to offset_msg?
+    return
 
 
 # main loop functionality
 if __name__ == '__main__':
     FONT_TUPLE = ('Verdana', 10)
-    INPUT_WIDTH = 100
+    BUTTON_COUNT = 3
+    INPUT_WIDTH = 75
     IMAGE_MULTIPLIER = 0.2
     DEFAULT_TEMPLATE_NAME = os.path.join(os.getcwd(), 'mobius_label.pdf')
     DEFAULT_CONFIG_NAME = os.path.join(os.getcwd(), 'config.json')
     DEFAULT_OFFSET_VALUE = '0'
     
     root = tk.Tk()
+    root.resizable(False, False)
     root.title('Mobius Label Generator')
 
     # logo = SvgImage(file='logo-black-transparent.svg') # opens image
+    IMAGE_ROW = 0
+    IMAGE_COLUMN = 0
     image = Image.open('logo-black-transparent.png') # opens image
     image = image.resize(size=[int(IMAGE_MULTIPLIER * length) for length in image.size])
     logo = ImageTk.PhotoImage(image) # converts image to format usable by Tkinter
-    tk.Label(root, image=logo).grid(row=0, column=0, columnspan=100)
+    tk.Label(root, image=logo).grid(row=IMAGE_ROW, column=IMAGE_COLUMN, columnspan=100)
 
     # requests path of template PDF
+    TEMPLATE_ROW = IMAGE_ROW + 1
+    TEMPLATE_COLUMN = IMAGE_COLUMN
     template_txt = tk.Label(root, text='Path to template PDF:\t', font=FONT_TUPLE)
-    template_txt.grid(sticky='W', row=1, column=0)
-    template_relpath = tk.Entry(root)
-    template_relpath.grid(sticky='E', row=1, column=1, ipadx=INPUT_WIDTH)
+    template_txt.grid(sticky='W', row=TEMPLATE_ROW, column=TEMPLATE_COLUMN)
+    template_relpath = tk.Entry(root, width=INPUT_WIDTH)
+    template_relpath.grid(sticky='E',
+                          row=TEMPLATE_ROW,
+                          column=TEMPLATE_COLUMN + 1,
+                          columnspan=BUTTON_COUNT)
     template_relpath.insert(0, DEFAULT_TEMPLATE_NAME) # default value
 
     # requests path of config.json
+    CONFIG_ROW = TEMPLATE_ROW + 1
+    CONFIG_COLUMN = IMAGE_COLUMN
     config_txt = tk.Label(root, text='Path to configuration file:\t', font=FONT_TUPLE)
-    config_txt.grid(sticky='W', row=2, column=0)
-    config_relpath = tk.Entry(root)
-    config_relpath.grid(sticky='E', row=2, column=1, ipadx=INPUT_WIDTH)
+    config_txt.grid(sticky='W', row=CONFIG_ROW, column=CONFIG_COLUMN)
+    config_relpath = tk.Entry(root, width=INPUT_WIDTH)
+    config_relpath.grid(sticky='E',
+                        row=CONFIG_ROW,
+                        column=CONFIG_COLUMN + 1,
+                        columnspan=BUTTON_COUNT)
     config_relpath.insert(0, DEFAULT_CONFIG_NAME) # default value
 
-    # requests label offset (to allow for printing on not used label sheets)
+    # requests label offset (to allow for printing on used label sheets)
+    OFFSET_ROW = CONFIG_ROW + 1
+    OFFSET_COLUMN = IMAGE_COLUMN
     label_offset_txt = tk.Label(root, text='Label offset value (0-7):\t', font=FONT_TUPLE)
-    label_offset_txt.grid(sticky='W', row=3, column=0)
+    label_offset_txt.grid(sticky='W', row=OFFSET_ROW, column=OFFSET_COLUMN)
+    offset_value = tk.Entry(root, width=INPUT_WIDTH)
+    offset_value.grid(sticky='E',
+                      row=OFFSET_ROW,
+                      column=OFFSET_COLUMN + 1,
+                      columnspan=BUTTON_COUNT)
+    offset_value.insert(0, DEFAULT_OFFSET_VALUE) # default value
     # validation commands for offset
     validate_offset = lambda char : char.isdigit() and int(char) <= 7 and int(char) >= 0
     vcmd = (validate_offset, '%S')
-    offset_value = tk.Entry(root, validate='key', validatecommand=vcmd)
-    offset_value.grid(sticky='E', row=3, column=1, ipadx=INPUT_WIDTH)
-    offset_value.insert(0, DEFAULT_OFFSET_VALUE) # default value
+    offset_value.config(validate='key', validatecommand=vcmd) # needs to be after default value
     # automatic checking every time offset is inputted
     offset_value.bind('<KeyRelease>', update_warning)
     # label which is updated live on if offset input is valid
-    offset_msg = tk.Label(root, text='', font=FONT_TUPLE)
-    offset_msg.grid(sticky='W', row=4, column=0, columnspan=2)
+    offset_msg = tk.Label(root, text='\n\n\n\n\n\n\n\n', font=FONT_TUPLE)
+    offset_msg.grid(sticky='E', 
+                    row=OFFSET_ROW + 1,
+                    column=OFFSET_COLUMN,
+                    columnspan=100)
+
+    # bottom rows
+    BOTTOM_ROW = 100
+    BUTTON_ROW = BOTTOM_ROW - 10
+    STATUS_ROW = BUTTON_ROW - 1
+    BUTTON_COLUMN_START = IMAGE_COLUMN + 1
+    status = tk.Label(root, text='', font=FONT_TUPLE)
+    status.grid(sticky='W', row=STATUS_ROW, column=IMAGE_COLUMN, columnspan=100)
+    enter_button = tk.Button(root, text='Enter', command=clicked)
+    enter_button.grid(sticky='NESW', row=BUTTON_ROW, column=BUTTON_COLUMN_START)
+    help_button = tk.Button(root, text='Info/Help', command=lambda: wb.open(REPO_LINK, new=1))
+    help_button.grid(sticky='NESW', row=BUTTON_ROW, column=BUTTON_COLUMN_START + 1)
+    cancel_button = tk.Button(root, text='Cancel', command=root.destroy)
+    cancel_button.grid(sticky='NESW', row=BUTTON_ROW, column=BUTTON_COLUMN_START + 2)
 
     # bottom credits
-    tk.Label(root, text='\n').grid(row=99, column=0, columnspan=100) # spacer
     description = tk.Label(root,
-                           text='Developed by Justin Caringal, ' + \
+                           text='\nDeveloped by Justin Caringal, ' + \
                            'Pickler Memorial Library, Truman State University',
                            justify='left',
-                           font=('Verdana', 8))
-    description.grid(sticky='W', row=100, column=0, columnspan=100)
+                           font=(FONT_TUPLE[0], 8))
+    description.grid(sticky='W', row=BOTTOM_ROW, column=0, columnspan=100)
 
-    clicked()
+    # clicked()
+    # root.update()
+    # print(root.winfo_width(), root.winfo_height())
     root.mainloop()
