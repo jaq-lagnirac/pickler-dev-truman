@@ -252,11 +252,11 @@ def generate_label(template_pdf : str,
     """
 
     # generates temporary output pdf
-    tmp_output_pdf = os.path.join(TEMPDIR, f'.tmp_{sorting_code}.pdf')
+    tmp_output_pdf = os.path.join(TEMPDIR, f'tmp_{sorting_code}.pdf')
     fillpdfs.write_fillable_pdf(template_pdf, tmp_output_pdf, request)
 
     # saves temporary pdf as png, should only be one pdf page
-    output_png = os.path.join(TEMPDIR, f'.tmp_{sorting_code}.png') # png chosen for lossless compression
+    output_png = os.path.join(TEMPDIR, f'tmp_{sorting_code}.png') # png chosen for lossless compression
     images = convert_from_path(tmp_output_pdf, # list of images
                                poppler_path='Release-24.07.0-0\\poppler-24.07.0\\Library\\bin')
     # NOTE: Poppler installation https://stackoverflow.com/a/70095504
