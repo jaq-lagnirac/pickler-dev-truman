@@ -93,13 +93,13 @@ def update_warning(entry : tk.Event) -> None:
         # prints offset diagram on if a label will be printed 
         is_offset = lambda label : 'X' if int(user_offset) <= label else ' '
         offset_diagram = \
-            f'{is_offset(0)}|{is_offset(1)}\n' + \
-            '---\n' + \
-            f'{is_offset(2)}|{is_offset(3)}\n' + \
-            '---\n' + \
-            f'{is_offset(4)}|{is_offset(5)}\n' + \
-            '---\n' + \
-            f'{is_offset(6)}|{is_offset(7)}\n'
+            f' {is_offset(0)}|{is_offset(1)}\n' + \
+            '-----\n' + \
+            f' {is_offset(2)}|{is_offset(3)}\n' + \
+            '-----\n' + \
+            f' {is_offset(4)}|{is_offset(5)}\n' + \
+            '-----\n' + \
+            f' {is_offset(6)}|{is_offset(7)}\n'
 
         offset_msg.config(text='Valid offset. \"X\" will be printed.\n' + offset_diagram,
                           fg=SUCCESS_COL)
@@ -331,10 +331,18 @@ def generate_label_sheet() -> None:
 
     canvas = Canvas(output_sheet_name, pagesize=letter) # initializes blank page
 
-    img_list = os.listdir(TEMPDIR) # list of filenames in temporary directory, NOT relative paths
+    # list of filenames in temporary directory, NOT relative paths
+    # already be sorted based off of sorting code and numbering system
+    img_list = os.listdir(TEMPDIR)
+    # user-inputted label offset, which spot to begin print job
+    label_offset = offset_value.get()
+
+    # iterates through list of images
     for index, img in enumerate(img_list):
         
         img = os.path.join(TEMPDIR, img) # generates the relative path of the specific image
+
+        print(img)
 
         # calculates page positions and offsets for each individual label
         page_position = index % TOTAL_LABELS # 8 positions on the page
@@ -394,6 +402,7 @@ def clicked() -> None:
 
     generate_labels_from_list(template_pdf_path, requests_list)
 
+    generate_label_sheet()
     # import pprint
     # pprint.pprint(requests_list)
     # print('\n\n')
@@ -503,3 +512,4 @@ if __name__ == '__main__':
     # root.update()
     # print(root.winfo_width(), root.winfo_height())
     root.mainloop()
+    
