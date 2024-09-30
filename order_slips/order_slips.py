@@ -8,6 +8,10 @@ from reportlab.pdfgen.canvas import Canvas
 import os
 import sys
 import json
+import datetime
+import pytz
+
+TIMEZONE = 'America/Chicago'
 
 def error_msg(msg : str = 'Unknown error occured.') -> None:
     """Pops up to user and shows error -jaq
@@ -101,7 +105,7 @@ def fetch_isbn(instance_id : str) -> str:
     # etc.)
     isbn_dict = {}
     for id in instance['identifiers']:
-        identifier_type = f.folio_get_single_object(path=f'identifier-types/{id["identifierTypeId"]}')
+        identifier_type = f.folio_get_single_object(path=f'identifier-types/{id['identifierTypeId']}')
         if identifier_type['name'] == 'ISBN':
             isbn = id['value'].split()[0] # split amongst spaces, only keeps number, removes ()
             isbn_dict[len(isbn)] = isbn # keyed by length to easily determine ISBN-13 vs ISBN-10
@@ -233,7 +237,7 @@ def printPoLines( order, po ):
             copies = "1"
 
         try:
-            cost = f'${line["cost"]["poLineEstimatedPrice"] :.2f}' # rounds to 2 decimal places
+            cost = f'${line['cost']['poLineEstimatedPrice'] :.2f}' # rounds to 2 decimal places
         except:
             cost = "$?.00"
 
@@ -285,6 +289,15 @@ def printPoLines( order, po ):
             vendor = fetch_organization(line['physical']['materialSupplier'])
         except:
             vendor = 'vendor unkown'
+
+        try:
+            iso8601_zulu = line['metadata']['createdDate']
+            utc_object = datetime.datetime.fromisoformat(iso8601_zulu)
+            local_timezone = pytz.timezone(TIMEZONE)
+            localized_object = utc_object.astimezone(local_timezone)
+            date_created = localized_object.strftime('%Y-%m-%d (%b %d)') # YYYY-MM-DD (MMM DD)
+        except:
+            date_created = 'creation date unknown'
         
         #work =  publisher + ". " + pubdate
         if copies > 1:
@@ -315,6 +328,8 @@ def printPoLines( order, po ):
         ISBN = 12 # originally 12
         # print(LEFT_SLIP_X, RIGHT_SLIP_X, TITLE, PUB, OL, MAT_TYPE, LOC, NOTES, ISBN)
 
+        bottom_row = f'{isbn:<24}{cost} - {fund} - {vendor}{date_created:>24}'
+
         # formats routing slip (left side)
         canvas.setFont("Times-Roman", 12.0)
         canvas.drawString(LEFT_SLIP_X, TITLE + yoffset, title)
@@ -327,7 +342,7 @@ def printPoLines( order, po ):
         canvas.drawString(LEFT_SLIP_X, NOTES2 + yoffset, notes2)
         canvas.drawString(LEFT_SLIP_X, NOTES3 + yoffset, notes3)
         canvas.drawString(LEFT_SLIP_X, NOTES4 + yoffset, notes4)
-        canvas.drawString(LEFT_SLIP_X, ISBN + yoffset, f'{isbn:<30}{cost} - {fund} - {vendor}')
+        canvas.drawString(LEFT_SLIP_X, ISBN + yoffset, bottom_row)
 
         # formats record keeping slip (right side)
         canvas.drawString(RIGHT_SLIP_X, TITLE + yoffset, title)
@@ -340,7 +355,7 @@ def printPoLines( order, po ):
         canvas.drawString(RIGHT_SLIP_X, NOTES2 + yoffset, notes2)
         canvas.drawString(RIGHT_SLIP_X, NOTES3 + yoffset, notes3)
         canvas.drawString(RIGHT_SLIP_X, NOTES4 + yoffset, notes4)
-        canvas.drawString(RIGHT_SLIP_X, ISBN + yoffset, f'{isbn:<30}{cost} - {fund} - {vendor}')
+        canvas.drawString(RIGHT_SLIP_X, ISBN + yoffset, bottom_row)
 
         pagePos = (pagePos + 1) % 3 # keeps three tickets max to a page
         if pagePos == 0:
