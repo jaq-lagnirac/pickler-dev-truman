@@ -353,7 +353,7 @@ def generate_label_sheet() -> int:
     # already be sorted based off of sorting code and numbering system
     img_list = os.listdir(TEMPDIR)
     # user-inputted label offset, which spot to begin print job
-    user_offset = offset_value.get()
+    user_offset = int(offset_value.get())
 
     # iterates through list of images
     for index, img in enumerate(img_list):
@@ -363,7 +363,7 @@ def generate_label_sheet() -> int:
         print(img)
 
         # calculates page positions and offsets for each individual label
-        page_position = index % TOTAL_LABELS # 8 positions on the page
+        page_position = (index + user_offset) % TOTAL_LABELS # 8 positions on the page
         x_offset = page_position % NUM_COLUMNS # left or right, which of the columns
         y_offset = page_position // NUM_COLUMNS # integer division, which of the rows
         
