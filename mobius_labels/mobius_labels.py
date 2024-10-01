@@ -29,6 +29,7 @@ from PIL import ImageTk, Image
 ### GLOBAL CONSTANTS/VARIABLES ###
 
 REPO_LINK = 'https://github.com/jaq-lagnirac/'
+TEMPDIR = '.tmp_mobius_labels_jaq' # temporary directory to store intermediary generated files
 SUCCESS_COL = '#00dd00'
 FAIL_COL = '#ff0000'
 
@@ -43,8 +44,6 @@ SUPPLIED_BY = None
 # Truman State University
 # 100 E Normal St.
 # Kirksville, MO 63501'''
-
-TEMPDIR = '.tmp_mobius_labels_jaq' # temporary directory to store intermediary generated files
 
 # keys required in config.json
 REQUIRED_CONFIG_KEYS = {
@@ -105,6 +104,26 @@ def update_warning(entry : tk.Event) -> None:
                           fg=SUCCESS_COL)
 
 
+def resource_path(relpath : str) -> str:
+    """Finds external resource for onefile pyinstaller executable.
+    
+    A function which generates a new relative path for external data,
+    (i.e. images) during execution, mainly for use when creating an
+    executable with PyInstaller.
+    
+    Based off solution found in the following Reddit thread:
+    https://www.reddit.com/r/learnpython/comments/4kjie3/comment/d3gjmom/
+
+    Args:
+        relpath (str): a relative path to the file in question
+    
+    Returns:
+        str: Returns a new path to the file
+    """
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relpath)
+    return os.path.join(os.path.abspath('.'), relpath)
+
 
 def error_msg(msg : str = 'Unknown error occured.') -> None:
     """Pops up to user and shows error.
@@ -125,10 +144,10 @@ def error_msg(msg : str = 'Unknown error occured.') -> None:
 
     # displays error window
     error = tk.Tk()
-    error.title("Error")
+    error.title('Error')
     # error.geometry('350x200')
     tk.Label(error, text = msg).grid(row = 0, column = 1)
-    button = tk.Button(error, text = "Cancel", width=25, command = error.destroy)
+    button = tk.Button(error, text = 'Cancel', width=25, command = error.destroy)
     button.grid(row = 1, column = 1)
     error.mainloop()
     sys.exit(1)
@@ -183,7 +202,6 @@ def login_folioclient() -> folioclient.FolioClient:
     return f
 
 
-# NOTE: unsure if Generator annotated correctly
 def extract_info_list(f : folioclient.FolioClient,
                       requests_query : Generator[str, str, None]) -> list:
     """Extracts relevant info from queries.
@@ -269,7 +287,7 @@ def generate_label(template_pdf : str,
     return
 
 
-def generate_labels_from_list(template_pdf : str, requests_list : list) -> None:
+def generate_labels_from_list(template_pdf : str, requests_list : list) -> int:
     """Organizes PNG generation from requests.
     
     A function which takes a list of request information, inputs them into individual
@@ -280,7 +298,7 @@ def generate_labels_from_list(template_pdf : str, requests_list : list) -> None:
         requests_list (list): list of extracted requests from FOLIO
     
     Returns:
-        None
+        int: Returns the number of items in the requests_lists to signify a success
     """
 
     # makes temporary working sub-directory
@@ -296,10 +314,10 @@ def generate_labels_from_list(template_pdf : str, requests_list : list) -> None:
         sorting_code = str(index).zfill(whole_number_places)
         generate_label(template_pdf, request, sorting_code)
 
-    return
+    return num_of_requests
 
 
-def generate_label_sheet() -> None:
+def generate_label_sheet() -> int:
     """Stitches together generated PNGs.
     
     A function which stitches together the generated PNG labels
@@ -309,7 +327,7 @@ def generate_label_sheet() -> None:
         None
     
     Returns:
-        None
+        int: Returns the number of items printed to signify a success
     """
 
     ### LOCAL CONSTANTS ###
@@ -335,7 +353,7 @@ def generate_label_sheet() -> None:
     # already be sorted based off of sorting code and numbering system
     img_list = os.listdir(TEMPDIR)
     # user-inputted label offset, which spot to begin print job
-    label_offset = offset_value.get()
+    user_offset = offset_value.get()
 
     # iterates through list of images
     for index, img in enumerate(img_list):
@@ -362,6 +380,8 @@ def generate_label_sheet() -> None:
     # saves file and opens file to PDF viewer
     canvas.save()
     os.startfile(output_sheet_name)
+
+    return len(img_list)
 
 
 def clicked() -> None:
@@ -433,7 +453,7 @@ if __name__ == '__main__':
     # logo = SvgImage(file='logo-black-transparent.svg') # opens image
     IMAGE_ROW = 0
     IMAGE_COLUMN = 0
-    image = Image.open('logo-black-transparent.png') # opens image
+    image = Image.open(resource_path('logo-black-transparent.png')) # opens image
     image = image.resize(size=[int(IMAGE_MULTIPLIER * length) for length in image.size])
     logo = ImageTk.PhotoImage(image) # converts image to format usable by Tkinter
     tk.Label(root, image=logo).grid(row=IMAGE_ROW, column=IMAGE_COLUMN, columnspan=100)
