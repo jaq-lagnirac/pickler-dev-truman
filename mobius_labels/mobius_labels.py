@@ -32,6 +32,7 @@ REPO_LINK = 'https://github.com/jaq-lagnirac/'
 TEMPDIR = '.tmp_mobius_labels_jaq' # temporary directory to store intermediary generated files
 SUCCESS_COL = '#00dd00'
 FAIL_COL = '#ff0000'
+DEFAULT_COL = '#000000'
 
 # scope resolution for global variables extracted from config.json
 # capitalized because these are essentially constants, they won't be
@@ -93,11 +94,11 @@ def update_warning(entry : tk.Event) -> None:
         is_offset = lambda label : 'X' if int(user_offset) <= label else ' '
         offset_diagram = \
             f' {is_offset(0)}|{is_offset(1)}\n' + \
-            '-----\n' + \
+            '----\n' + \
             f' {is_offset(2)}|{is_offset(3)}\n' + \
-            '-----\n' + \
+            '----\n' + \
             f' {is_offset(4)}|{is_offset(5)}\n' + \
-            '-----\n' + \
+            '----\n' + \
             f' {is_offset(6)}|{is_offset(7)}\n'
 
         offset_msg.config(text='Valid offset. \"X\" will be printed.\n' + offset_diagram,
@@ -110,9 +111,9 @@ def resource_path(relpath : str) -> str:
     A function which generates a new relative path for external data,
     (i.e. images) during execution, mainly for use when creating an
     executable with PyInstaller.
-    
-    Based off solution found in the following Reddit thread:
-    https://www.reddit.com/r/learnpython/comments/4kjie3/comment/d3gjmom/
+
+    Based off of the following StackOverflow forum post:
+    https://stackoverflow.com/a/72060275
 
     Args:
         relpath (str): a relative path to the file in question
@@ -120,9 +121,14 @@ def resource_path(relpath : str) -> str:
     Returns:
         str: Returns a new path to the file
     """
-    if hasattr(sys, '_MEIPASS'):
-        return os.path.join(sys._MEIPASS, relpath)
-    return os.path.join(os.path.abspath('.'), relpath)
+
+    # https://stackoverflow.com/a/72060275
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relpath)
 
 
 def error_msg(msg : str = 'Unknown error occured.') -> None:
@@ -253,7 +259,7 @@ def extract_info_list(f : folioclient.FolioClient,
 
 def generate_label(template_pdf : str,
                    request : dict,
-                   sorting_code : int) -> None:
+                   sorting_code : int) -> bool:
     """Creates individual label png.
     
     A function which takes a template PDF and pipelines the extracted
@@ -266,7 +272,7 @@ def generate_label(template_pdf : str,
         sorting_code (int): unique identifier, allows for continuation of sorting
 
     Returns:
-        None
+        bool: Returns True if successful
     """
 
     # generates temporary output pdf
@@ -275,16 +281,17 @@ def generate_label(template_pdf : str,
 
     # saves temporary pdf as png, should only be one pdf page
     output_png = os.path.join(TEMPDIR, f'tmp_{sorting_code}.png') # png chosen for lossless compression
-    images = convert_from_path(tmp_output_pdf, # list of images
-                               poppler_path='Release-24.07.0-0\\poppler-24.07.0\\Library\\bin')
     # NOTE: Poppler installation https://stackoverflow.com/a/70095504
+    poppler_path = 'Release-24.07.0-0\\poppler-24.07.0\\Library\\bin'
+    images = convert_from_path(tmp_output_pdf, # list of images
+                               poppler_path=resource_path(poppler_path))
     images[0].save(output_png, 'PNG') # saves the first (and only) pdf page as a png
 
     # deletes temporary output pdf, keeps png
     if os.path.exists(tmp_output_pdf): # prevents error if something should happen to the pdf
         os.remove(tmp_output_pdf)
 
-    return
+    return True
 
 
 def generate_labels_from_list(template_pdf : str, requests_list : list) -> int:
@@ -301,10 +308,6 @@ def generate_labels_from_list(template_pdf : str, requests_list : list) -> int:
         int: Returns the number of items in the requests_lists to signify a success
     """
 
-    # makes temporary working sub-directory
-    if not os.path.exists(TEMPDIR):
-        os.makedirs(TEMPDIR)
-
     # calculates the number of zeros to add to beginning of sorting code with zfill
     num_of_requests = len(requests_list)
     whole_number_places = len(str(num_of_requests))
@@ -317,7 +320,7 @@ def generate_labels_from_list(template_pdf : str, requests_list : list) -> int:
     return num_of_requests
 
 
-def generate_label_sheet() -> int:
+def generate_label_sheet() -> str:
     """Stitches together generated PNGs.
     
     A function which stitches together the generated PNG labels
@@ -327,7 +330,7 @@ def generate_label_sheet() -> int:
         None
     
     Returns:
-        int: Returns the number of items printed to signify a success
+        int: Returns name of the label sheet
     """
 
     ### LOCAL CONSTANTS ###
@@ -360,8 +363,6 @@ def generate_label_sheet() -> int:
         
         img = os.path.join(TEMPDIR, img) # generates the relative path of the specific image
 
-        print(img)
-
         # calculates page positions and offsets for each individual label
         page_position = (index + user_offset) % TOTAL_LABELS # 8 positions on the page
         x_offset = page_position % NUM_COLUMNS # left or right, which of the columns
@@ -381,7 +382,7 @@ def generate_label_sheet() -> int:
     canvas.save()
     os.startfile(output_sheet_name)
 
-    return len(img_list)
+    return output_sheet_name
 
 
 def clicked() -> None:
@@ -389,7 +390,9 @@ def clicked() -> None:
     
     A function which validates the user inputs,
     organizes the login actions to FolioClient,
-    and handles the label sheet PDF generation
+    and handles the label sheet PDF generation.
+
+    Serves as the "main" function after Enter is clicked.
     
     Args:
         None
@@ -411,6 +414,11 @@ def clicked() -> None:
 
     f = login_folioclient() # config.json validation, generates FolioClient object
 
+    # extra insurance that user first connects to FolioClient before beginning queries
+    if not f:
+        status.config(text='Unable to connect to FolioClient, try again.', fg=FAIL_COL)
+        return
+
     # querying FOLIOClient API
     requests_query = f.folio_get_all(path='request-storage/requests',
                                      key='requests',
@@ -419,20 +427,46 @@ def clicked() -> None:
 
     # extracting relevant info from requests_query
     requests_list = extract_info_list(f, requests_query)
+    requests_list = [{
+    'Title' : 'Title',
+    'CallNumber' : 'CallNumber',
+    'SendTo' : 'SendTo',
+    'Patron' : 'Patron',
+    'Location' : 'Location',
+    'LibCode' : 'LibCode',
+    'SuppliedBy' : 'SuppliedBy'
+    }] # temp test data
+    if not requests_list: # if requests_list is empty
+        status.config(text='No active requests detected.', fg=DEFAULT_COL)
+        return
+    
+    # if temporary working sub-directory exists, clean it out
+    # afterwards (in either case), create a new empty temporary working sub-directory
+    delete_tempdir = lambda : shutil.rmtree(TEMPDIR) if os.path.exists(TEMPDIR) else False
+    delete_tempdir()
+    os.makedirs(TEMPDIR)
 
-    generate_labels_from_list(template_pdf_path, requests_list)
+    # generate images from requests list information
+    status.config(text='Generating labels from list.', fg=DEFAULT_COL)
+    num_images = generate_labels_from_list(template_pdf_path, requests_list)
+    if not num_images:
+        status.config(text='Image generation not successful.', fg=FAIL_COL)
+        delete_tempdir()
+        return
 
-    generate_label_sheet()
-    # import pprint
-    # pprint.pprint(requests_list)
-    # print('\n\n')
-    # for x in requests_list:
-    #     print(x['ShelvingOrder'])
-    #     for y in x:
-    #         print(y, x[y])
-    # print('\n\n')
+    # stitches together images into one PDF
+    status.config(text='Stitching together images from image directory.', fg=DEFAULT_COL)
+    output_sheet_name = generate_label_sheet()
+    if not output_sheet_name:
+        status.config(text='Label stitching not successful.', fg=FAIL_COL)
+        delete_tempdir()
+        return
 
-    status.config(text='Success!', fg=SUCCESS_COL) # maybe change to offset_msg?
+    plural_s = lambda : 's' if num_images != 1 else ''
+    success_status = f'Successfully created {output_sheet_name} ' + \
+        f'with {num_images} label{plural_s()}.'
+    status.config(text=success_status, fg=SUCCESS_COL)
+    delete_tempdir()
     return
 
 
@@ -528,8 +562,5 @@ if __name__ == '__main__':
                            font=(FONT_TUPLE[0], 8))
     description.grid(sticky='W', row=BOTTOM_ROW, column=0, columnspan=100)
 
-    # clicked()
-    # root.update()
-    # print(root.winfo_width(), root.winfo_height())
     root.mainloop()
     
