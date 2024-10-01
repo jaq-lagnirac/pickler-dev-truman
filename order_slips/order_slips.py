@@ -105,7 +105,7 @@ def fetch_isbn(instance_id : str) -> str:
     # etc.)
     isbn_dict = {}
     for id in instance['identifiers']:
-        identifier_type = f.folio_get_single_object(path=f'identifier-types/{id['identifierTypeId']}')
+        identifier_type = f.folio_get_single_object(path=f'identifier-types/{id["identifierTypeId"]}')
         if identifier_type['name'] == 'ISBN':
             isbn = id['value'].split()[0] # split amongst spaces, only keeps number, removes ()
             isbn_dict[len(isbn)] = isbn # keyed by length to easily determine ISBN-13 vs ISBN-10
@@ -237,7 +237,7 @@ def printPoLines( order, po ):
             copies = "1"
 
         try:
-            cost = f'${line['cost']['poLineEstimatedPrice'] :.2f}' # rounds to 2 decimal places
+            cost = f'${line["cost"]["poLineEstimatedPrice"] :.2f}' # rounds to 2 decimal places
         except:
             cost = "$?.00"
 
