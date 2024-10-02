@@ -103,6 +103,8 @@ def update_warning(entry : tk.Event) -> None:
 
         offset_msg.config(text='Valid offset. \"X\" will be printed.\n' + offset_diagram,
                           fg=SUCCESS_COL)
+    root.update()
+    return
 
 
 def resource_path(relpath : str) -> str:
@@ -282,9 +284,16 @@ def generate_label(template_pdf : str,
     # saves temporary pdf as png, should only be one pdf page
     output_png = os.path.join(TEMPDIR, f'tmp_{sorting_code}.png') # png chosen for lossless compression
     # NOTE: Poppler installation https://stackoverflow.com/a/70095504
-    poppler_path = 'Release-24.07.0-0\\poppler-24.07.0\\Library\\bin'
+    POPPLER_PATH = os.path.join('poppler-24.07.0', 'Library', 'bin') # default search, for pyinstaller exe
+    if not os.path.exists(POPPLER_PATH): # searches for poppler when run as a .py file
+        POPPLER_PATH = os.path.join('Release-24.07.0-0', POPPLER_PATH)
+    if not os.path.exists(POPPLER_PATH): # safe exit and notification
+        status.config(text='Cannot find Poppler Path.', fg=FAIL_COL)
+        root.update()
+        error_msg('Cannot find Poppler Path, contact developer for more details.')
+        return
     images = convert_from_path(tmp_output_pdf, # list of images
-                               poppler_path=resource_path(poppler_path))
+                               poppler_path=resource_path(POPPLER_PATH))
     images[0].save(output_png, 'PNG') # saves the first (and only) pdf page as a png
 
     # deletes temporary output pdf, keeps png
@@ -417,6 +426,7 @@ def clicked() -> None:
     # extra insurance that user first connects to FolioClient before beginning queries
     if not f:
         status.config(text='Unable to connect to FolioClient, try again.', fg=FAIL_COL)
+        root.update()
         return
 
     # querying FOLIOClient API
@@ -427,17 +437,18 @@ def clicked() -> None:
 
     # extracting relevant info from requests_query
     requests_list = extract_info_list(f, requests_query)
-    requests_list = [{
-    'Title' : 'Title',
-    'CallNumber' : 'CallNumber',
-    'SendTo' : 'SendTo',
-    'Patron' : 'Patron',
-    'Location' : 'Location',
-    'LibCode' : 'LibCode',
-    'SuppliedBy' : 'SuppliedBy'
-    }] # temp test data
+    # requests_list = [{
+    # 'Title' : 'Title',
+    # 'CallNumber' : 'CallNumber',
+    # 'SendTo' : 'SendTo',
+    # 'Patron' : 'Patron',
+    # 'Location' : 'Location',
+    # 'LibCode' : 'LibCode',
+    # 'SuppliedBy' : 'SuppliedBy'
+    # }] # temp test data
     if not requests_list: # if requests_list is empty
         status.config(text='No active requests detected.', fg=DEFAULT_COL)
+        root.update()
         return
     
     # if temporary working sub-directory exists, clean it out
@@ -448,17 +459,21 @@ def clicked() -> None:
 
     # generate images from requests list information
     status.config(text='Generating labels from list.', fg=DEFAULT_COL)
+    root.update()
     num_images = generate_labels_from_list(template_pdf_path, requests_list)
     if not num_images:
         status.config(text='Image generation not successful.', fg=FAIL_COL)
+        root.update()
         delete_tempdir()
         return
 
     # stitches together images into one PDF
     status.config(text='Stitching together images from image directory.', fg=DEFAULT_COL)
+    root.update()
     output_sheet_name = generate_label_sheet()
     if not output_sheet_name:
         status.config(text='Label stitching not successful.', fg=FAIL_COL)
+        root.update()
         delete_tempdir()
         return
 
@@ -466,6 +481,7 @@ def clicked() -> None:
     success_status = f'Successfully created {output_sheet_name} ' + \
         f'with {num_images} label{plural_s()}.'
     status.config(text=success_status, fg=SUCCESS_COL)
+    root.update()
     delete_tempdir()
     return
 
