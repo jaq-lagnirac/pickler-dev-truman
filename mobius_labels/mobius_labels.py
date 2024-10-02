@@ -284,14 +284,7 @@ def generate_label(template_pdf : str,
     # saves temporary pdf as png, should only be one pdf page
     output_png = os.path.join(TEMPDIR, f'tmp_{sorting_code}.png') # png chosen for lossless compression
     # NOTE: Poppler installation https://stackoverflow.com/a/70095504
-    POPPLER_PATH = os.path.join('poppler-24.07.0', 'Library', 'bin') # default search, for pyinstaller exe
-    if not os.path.exists(POPPLER_PATH): # searches for poppler when run as a .py file
-        POPPLER_PATH = os.path.join('Release-24.07.0-0', POPPLER_PATH)
-    if not os.path.exists(POPPLER_PATH): # safe exit and notification
-        status.config(text='Cannot find Poppler Path.', fg=FAIL_COL)
-        root.update()
-        error_msg('Cannot find Poppler Path, contact developer for more details.')
-        return
+    POPPLER_PATH = os.path.join('Release-24.07.0-0', 'poppler-24.07.0', 'Library', 'bin')
     images = convert_from_path(tmp_output_pdf, # list of images
                                poppler_path=resource_path(POPPLER_PATH))
     images[0].save(output_png, 'PNG') # saves the first (and only) pdf page as a png
