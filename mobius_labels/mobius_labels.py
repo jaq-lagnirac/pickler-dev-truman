@@ -24,7 +24,6 @@ from reportlab.pdfgen.canvas import Canvas
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.units import inch
 from PIL import ImageTk, Image
-# from tksvg import SvgImage
 
 ### GLOBAL CONSTANTS/VARIABLES ###
 
@@ -33,18 +32,13 @@ TEMPDIR = '.tmp_mobius_labels_jaq' # temporary directory to store intermediary g
 SUCCESS_COL = '#00dd00'
 FAIL_COL = '#ff0000'
 DEFAULT_COL = '#000000'
+FONT_TUPLE = ('Verdana', 10)
 
 # scope resolution for global variables extracted from config.json
 # capitalized because these are essentially constants, they won't be
 # manipulated by the program, only used as inputs
 LIB_CODE = None
 SUPPLIED_BY = None
-# test code for global vars
-# LIB_CODE = 'TRUMN'
-# SUPPLIED_BY = '''Pickler Memorial Library
-# Truman State University
-# 100 E Normal St.
-# Kirksville, MO 63501'''
 
 # keys required in config.json
 REQUIRED_CONFIG_KEYS = {
@@ -65,7 +59,7 @@ REQUIRED_PDF_KEYS = {
     'Location',
     'LibCode',
     'SuppliedBy'
-    } # ShelvingOrder not required by PDF but searched for by system
+    } # ShelvingOrder not required by PDF but searched for by program
 
 ### FUNCTIONS ###
 
@@ -89,6 +83,7 @@ def update_warning(entry : tk.Event) -> None:
     if not (user_offset.isdigit() and int(user_offset) <= 7 and int(user_offset) >=0):
         offset_msg.config(text='Offset must be a number between 0-7.\n\n\n\n\n\n\n\n',
                           fg=FAIL_COL)
+        enter_button.config(state='disabled') # disables button to prevent bad offset input
     else:
         # prints offset diagram on if a label will be printed 
         is_offset = lambda label : 'X' if int(user_offset) <= label else ' '
@@ -103,6 +98,7 @@ def update_warning(entry : tk.Event) -> None:
 
         offset_msg.config(text='Valid offset. \"X\" will be printed.\n' + offset_diagram,
                           fg=SUCCESS_COL)
+        enter_button.config(state='normal') # enables button to allow label generation
     root.update()
     return
 
@@ -153,12 +149,40 @@ def error_msg(msg : str = 'Unknown error occured.') -> None:
     # displays error window
     error = tk.Tk()
     error.title('Error')
-    # error.geometry('350x200')
     tk.Label(error, text = msg).grid(row = 0, column = 1)
     button = tk.Button(error, text = 'Cancel', width=25, command = error.destroy)
     button.grid(row = 1, column = 1)
     error.mainloop()
-    sys.exit(1)
+
+
+def safe_exit(msg : str = '', col : str = DEFAULT_COL) -> None:
+    """Handles safely exiting root window functionality.
+    
+    A function which safely stops the program and allows for 
+    continued user input. Not as harsh as error_msg(), keeps
+    everything relegated to the root window as opposed to a
+    pop-up window.
+
+    Execution of this function does not necessarily denote error,
+    as this function is also called on a success. This is more so
+    a way to handle the clean up procedures of the root window
+
+    Args:
+        msg (str): The status message to be displayed to the user
+        col (str): The hex code of the msg color
+    
+    Returns:
+        None
+    """
+
+    # deletes temporary working sub-directory
+    if os.path.exists(TEMPDIR):
+        shutil.rmtree(TEMPDIR)
+    
+    status.config(text=msg, fg=col) # displays message to user in root
+    enter_button.config(state='normal') # allows for future inputs
+    root.update() # refreshes root window
+    return
 
 
 def login_folioclient() -> folioclient.FolioClient:
@@ -195,12 +219,15 @@ def login_folioclient() -> folioclient.FolioClient:
                   f'\nDetected keys: {set(login.keys())}' + \
                   f'\nRequired keys: {REQUIRED_CONFIG_KEYS}')
 
+    # unpacks relevant data from config.json file
     okapi_url = login['okapi_url']
     tenant = login['tenant']
     username = login['username']
     password = login['password']
     LIB_CODE = login['lib_code']
     SUPPLIED_BY = login['supplied_by']
+
+    # attempts FOLIO API handshake
     f = None # scope resolution
     try:
         f = folioclient.FolioClient(okapi_url, tenant, username, password)
@@ -358,7 +385,14 @@ def generate_label_sheet() -> str:
     # already be sorted based off of sorting code and numbering system
     img_list = os.listdir(TEMPDIR)
     # user-inputted label offset, which spot to begin print job
-    user_offset = int(offset_value.get())
+    try:
+        user_offset = int(offset_value.get())
+    except Exception:
+        # most likely ValueError due to bad offset input,
+        # should be prevented with button-locking
+        # safely defaults to zero in case lock doesn't work
+        # but will most likely never execute due to button-locking
+        user_offset = 0
 
     # iterates through list of images
     for index, img in enumerate(img_list):
@@ -377,7 +411,8 @@ def generate_label_sheet() -> str:
                         width=LABEL_WIDTH,
                         height=LABEL_HEIGHT)
         
-        if page_position >= (TOTAL_LABELS - 1): # prevents overlap, >= used to catch rare exceptions
+        # prevents overlap, >= used to catch rare (hopefully impossible) exceptions
+        if page_position >= (TOTAL_LABELS - 1):
             canvas.showPage() # moves on to next page
 
     # saves file and opens file to PDF viewer
@@ -387,7 +422,8 @@ def generate_label_sheet() -> str:
     return output_sheet_name
 
 
-def clicked() -> None:
+
+def start_label_generation() -> None:
     """The response to clicking the Enter button.
     
     A function which validates the user inputs,
@@ -403,23 +439,27 @@ def clicked() -> None:
         None
     """
 
-    template_pdf_path = template_relpath.get()
+    # prevents future inputs
+    enter_button.config(state='disabled')
+
     # checks to see if template pdf file exists
+    template_pdf_path = template_relpath.get()
     if not os.path.exists(template_pdf_path):
         error_msg(f'\"{template_pdf_path}\" not detected.')
+        safe_exit()
     # checks to make sure template has all valid keys
     template_keys = fillpdfs.get_form_fields(template_pdf_path)
     if not REQUIRED_PDF_KEYS.issubset(set(template_keys.keys())):
         error_msg(f'{template_pdf_path} does not have required keys.' + \
                   f'\nDetected keys: {set(template_keys.keys())}' + \
                   f'\nRequired keys: {REQUIRED_PDF_KEYS}')
+        safe_exit()
 
     f = login_folioclient() # config.json validation, generates FolioClient object
 
     # extra insurance that user first connects to FolioClient before beginning queries
     if not f:
-        status.config(text='Unable to connect to FolioClient, try again.', fg=FAIL_COL)
-        root.update()
+        safe_exit(msg='Unable to connect to FolioClient, try again.', col=FAIL_COL)
         return
 
     # querying FOLIOClient API
@@ -438,16 +478,16 @@ def clicked() -> None:
     # 'Location' : 'Location',
     # 'LibCode' : 'LibCode',
     # 'SuppliedBy' : 'SuppliedBy'
-    # }] # temp test data
+    # }] # temp test data when no requests are in FOLIO
     if not requests_list: # if requests_list is empty
-        status.config(text='No active requests detected.', fg=DEFAULT_COL)
-        root.update()
+        safe_exit(msg='No active requests detected.', col=SUCCESS_COL)
         return
     
-    # if temporary working sub-directory exists, clean it out
-    # afterwards (in either case), create a new empty temporary working sub-directory
-    delete_tempdir = lambda : shutil.rmtree(TEMPDIR) if os.path.exists(TEMPDIR) else False
-    delete_tempdir()
+    # if temporary working sub-directory exists, clean
+    # it out afterwards (in either case), create a new
+    # empty temporary working sub-directory
+    if os.path.exists(TEMPDIR):
+        shutil.rmtree(TEMPDIR)
     os.makedirs(TEMPDIR)
 
     # generate images from requests list information
@@ -455,9 +495,7 @@ def clicked() -> None:
     root.update()
     num_images = generate_labels_from_list(template_pdf_path, requests_list)
     if not num_images:
-        status.config(text='Image generation not successful.', fg=FAIL_COL)
-        root.update()
-        delete_tempdir()
+        safe_exit(msg='Image generation not successful.', col=FAIL_COL)
         return
 
     # stitches together images into one PDF
@@ -465,23 +503,19 @@ def clicked() -> None:
     root.update()
     output_sheet_name = generate_label_sheet()
     if not output_sheet_name:
-        status.config(text='Label stitching not successful.', fg=FAIL_COL)
-        root.update()
-        delete_tempdir()
+        safe_exit(msg='Label stitching not successful.', col=FAIL_COL)
         return
 
+    # end message on success
     plural_s = lambda : 's' if num_images != 1 else ''
     success_status = f'Successfully created {output_sheet_name} ' + \
         f'with {num_images} label{plural_s()}.'
-    status.config(text=success_status, fg=SUCCESS_COL)
-    root.update()
-    delete_tempdir()
+    safe_exit(msg=success_status, col=SUCCESS_COL)
     return
 
 
-# main loop functionality
+# main loop functionality, generates root tkinter window where most of the user interacts
 if __name__ == '__main__':
-    FONT_TUPLE = ('Verdana', 10)
     BUTTON_COUNT = 3
     INPUT_WIDTH = 75
     IMAGE_MULTIPLIER = 0.2
@@ -493,7 +527,6 @@ if __name__ == '__main__':
     root.resizable(False, False)
     root.title('Mobius Label Generator')
 
-    # logo = SvgImage(file='logo-black-transparent.svg') # opens image
     IMAGE_ROW = 0
     IMAGE_COLUMN = 0
     image = Image.open(resource_path('logo-black-transparent.png')) # opens image
@@ -539,7 +572,7 @@ if __name__ == '__main__':
     # validation commands for offset
     validate_offset = lambda char : char.isdigit() and int(char) <= 7 and int(char) >= 0
     vcmd = (validate_offset, '%S')
-    offset_value.config(validate='key', validatecommand=vcmd) # needs to be after default value
+    offset_value.config(validate='key', validatecommand=vcmd) # this line needs to be after default value
     # automatic checking every time offset is inputted
     offset_value.bind('<KeyRelease>', update_warning)
     # label which is updated live on if offset input is valid
@@ -550,13 +583,14 @@ if __name__ == '__main__':
                     columnspan=100)
 
     # bottom rows
-    BOTTOM_ROW = 100
+    BOTTOM_ROW = 100 # arbitrarily large number
     BUTTON_ROW = BOTTOM_ROW - 10
     STATUS_ROW = BUTTON_ROW - 1
     BUTTON_COLUMN_START = IMAGE_COLUMN + 1
     status = tk.Label(root, text='', font=FONT_TUPLE)
     status.grid(sticky='W', row=STATUS_ROW, column=IMAGE_COLUMN, columnspan=100)
-    enter_button = tk.Button(root, text='Enter', command=clicked)
+    # NOTE: sticky='NESW' used to fill box to fit column and row
+    enter_button = tk.Button(root, text='Enter', command=start_label_generation)
     enter_button.grid(sticky='NESW', row=BUTTON_ROW, column=BUTTON_COLUMN_START)
     help_button = tk.Button(root, text='Info/Help', command=lambda: wb.open(REPO_LINK, new=1))
     help_button.grid(sticky='NESW', row=BUTTON_ROW, column=BUTTON_COLUMN_START + 1)
