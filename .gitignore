@@ -1,2 +1,5 @@
 config.json
 .venv
+.tmp_mobius_labels_jaq/
+Release-24.07.0-0.zip
+Release-24.07.0-0/
