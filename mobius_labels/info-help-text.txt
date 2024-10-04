@@ -1,0 +1,64 @@
+Welcome to Mobius Label Generator!
+
+This program is intended as an open source generator to create labels to help 
+facilitate interlibrary loans within the MOBIUS Linking Libraries Consortium.
+The tool takes a template PDF given by the user (created using an external
+tool--such LibreOffice Writer--with standard 8.5"x11" landscape letter
+dimensions) and generates a label sheet PDF for use and printing on a 4x2 
+sticker sheet.
+
+TEMPLATE PDF:
+The tool requires a user-inputted PDF (relative or absolute) path. The default
+name of the file is "mobius_label.pdf", stored in the same working directory
+as the tool. This path can be changed with the relevant field. At minimum,
+the PDF must have the following fields (labeled using an external tool):
+    - "Title" : The title of the piece of medium, FOLIO includes the author
+        in this field on occasion.
+    - "CallNumber" : The call number of the item.
+    - "Send To" : The intended destination of the item.
+    - "Patron" : An anonymized patron code, the intended recipient of the item.
+    - "Location" : The shelving location of the requested item.
+    - "LibCode" : The MOBIUS Library Code from the config.json file (See
+        CONFIGURATION FILE).
+    - "SuppliedBy" : The address of the sender of the item from the config.json
+        file (See CONFIGURATION FILE).
+Please note: The generator is case-sensitive. Only include what is in between
+the quotation marks part of the labels and not the marks themselves. Please
+visit the repository for an example mobius_label.pdf as well as an editable 
+template DOCX.
+
+CONFIGURATION FILE:
+The tool requires a configuration file stored in the Javascript Object Notation
+format (JSON). The default name of the file is "config.json", stored in the
+same working directory as the tool. This path can be changed with the relevant
+field. At minimum, the JSON must have the following keys and values:
+    - "okapi_url" : The URL to the OKAPI gateway to the FOLIO project,
+        will most likely be "https://okapi-mobius.folio.ebsco.com".
+    - "tenant" : The tenant ID for the institution.
+    - "username" : The individual user of the institution.
+    - "password" : The password for the associated account.
+    - "lib_code" : The MOBIUS Library Code, typically 4-6 letters for MOBIUS
+        members
+    - "supplied_by" : The address of the sender. Can contain up to a 4-line
+        address, with each line separated by a newline character ("\n").
+Please note: The generator is case-sensitive. Only include what is in between
+the quotation marks part of the labels and not the marks themselves. Please
+visit the repository for an editable template config.json file.
+
+OFFSETS:
+The tool is capable on printing a full sheet of 8 labels as well as printing on
+used sheets (i.e. sheets that do not have a full 8 stickers) by using the
+"offset" field. A small graphic appears on the main window to aid in 
+determining the offset that will be inputted into the program, where X denotes
+the labels that will be printed based on a vertical orientation (with blanks
+denoting no label will be printed there).
+
+CREDITS AND CLOSING:
+Developed for use and further development on Windows using Python 3.12+.
+
+This tool was commissioned by Stephen Wynn, the Associate Dean of Libraries for
+Technical Services & Systems of Pickler Memorial Library at Truman State
+University, and developed by Justin Caringal of Truman State University.
+
+Text originally published 2024-10-04, v1.1.0.
+Last updated 2024-10-04, v1.1.0.

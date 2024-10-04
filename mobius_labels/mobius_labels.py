@@ -185,11 +185,51 @@ def safe_exit(msg : str = '', col : str = DEFAULT_COL) -> None:
     return
 
 
+def open_info_help() -> None:
+    """Opens a special info/help window.
+    
+    A function which extracts text from an external .txt file and displays
+    the relevant info/help information.
+
+    Args:
+        None
+    
+    Returns:
+        None
+    """
+
+    # initializes start-up
+    info_window = tk.Tk()
+    info_window.geometry('700x600') # width x height
+    info_window.resizable(False, False)
+    info_window.title('Info/Help')
+
+    # creates text widget
+    info_textbox = tk.Text(info_window, wrap='word', font=FONT_TUPLE)
+    info_textbox.pack(side='left', fill='both', expand=True)
+
+    # creates scrollbar
+    info_scrollbar = tk.Scrollbar(info_window)
+    info_scrollbar.pack(side='right', fill='y')
+
+    # configures text widget to use scrollbar
+    info_textbox.config(yscrollcommand=info_scrollbar.set)
+    info_scrollbar.config(command=info_textbox.yview)
+
+    # adds text to text widget
+    info_text = None # scope resolution
+    with open('info-help-text.txt', 'r') as file:
+        info_text = file.read()
+    info_textbox.insert('end', info_text)
+
+    info_window.mainloop()
+
+
 def login_folioclient() -> folioclient.FolioClient:
     """Organizes initial handshake with FOLIOClient.
     
     A function which handles the possible exceptions on start-up
-    and, if everything is in order, logs into the FOLIOClient API
+    and, if everything is in order, logs into the FOLIOClient API.
     
     Args:
         None
@@ -592,7 +632,7 @@ if __name__ == '__main__':
     # NOTE: sticky='NESW' used to fill box to fit column and row
     enter_button = tk.Button(root, text='Enter', command=start_label_generation)
     enter_button.grid(sticky='NESW', row=BUTTON_ROW, column=BUTTON_COLUMN_START)
-    help_button = tk.Button(root, text='Info/Help', command=lambda: wb.open(REPO_LINK, new=1))
+    help_button = tk.Button(root, text='Info/Help', command=open_info_help)
     help_button.grid(sticky='NESW', row=BUTTON_ROW, column=BUTTON_COLUMN_START + 1)
     cancel_button = tk.Button(root, text='Cancel', command=root.destroy)
     cancel_button.grid(sticky='NESW', row=BUTTON_ROW, column=BUTTON_COLUMN_START + 2)
