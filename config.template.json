@@ -3,6 +3,6 @@
     "tenant" : "[INSTITUTION ID]",
     "username" : "[USERNAME]",
     "password" : "[PASSWORD]",
-    "lib_code" : "[5 LETTER CODE]",
+    "lib_code" : "[MOBIUS LIBRARY CODE]",
     "supplied_by" : "[ADDRESS; UP TO 4 LINES, BROKEN UP BY NEWLINE CHARACTERS --> \n]"
 }
