@@ -147,7 +147,7 @@ def error_msg(msg : str = 'Unknown error occured.') -> None:
         shutil.rmtree(TEMPDIR)
 
     # displays error window
-    error = tk.Tk()
+    error = tk.Toplevel()
     error.title('Error')
     tk.Label(error, text = msg).grid(row = 0, column = 1)
     button = tk.Button(error, text = 'Cancel', width=25, command = error.destroy)
@@ -199,18 +199,28 @@ def open_info_help() -> None:
     """
 
     # initializes start-up
-    info_window = tk.Tk()
-    info_window.geometry('700x600') # width x height
+    info_window = tk.Toplevel()
     info_window.resizable(False, False)
     info_window.title('Info/Help')
 
+    # adds logo image
+    INFO_IMAGE_MULTIPLIER = 0.9
+    info_image = Image.open(resource_path('logo-black-transparent.png')) # opens image
+    info_image = image.resize(size=[int(INFO_IMAGE_MULTIPLIER * length) for length in image.size])
+    info_logo = ImageTk.PhotoImage(info_image) # converts image to format usable by Tkinter
+    tk.Label(info_window, image=info_logo).grid(row=0, column=0, columnspan=3)
+
     # creates text widget
-    info_textbox = tk.Text(info_window, wrap='word', font=FONT_TUPLE)
-    info_textbox.pack(side='left', fill='both', expand=True)
+    info_textbox = tk.Text(info_window,
+                           wrap='word',
+                        #    height=550,
+                        #    width=650,
+                           font=FONT_TUPLE)
+    info_textbox.grid(row=1, column=0, columnspan=3)
 
     # creates scrollbar
     info_scrollbar = tk.Scrollbar(info_window)
-    info_scrollbar.pack(side='right', fill='y')
+    info_scrollbar.grid(row=0, column=100, rowspan=100, sticky='NS')
 
     # configures text widget to use scrollbar
     info_textbox.config(yscrollcommand=info_scrollbar.set)
@@ -220,7 +230,19 @@ def open_info_help() -> None:
     info_text = None # scope resolution
     with open('info-help-text.txt', 'r') as file:
         info_text = file.read()
-    info_textbox.insert('end', info_text)
+    info_textbox.insert('end', info_text) # needs to be before text disable
+    info_textbox.config(state='disabled') # disables editing of help text
+
+    # adds button to repository documentation
+    repo_button = tk.Button(info_window,
+                            text='More...',
+                            command=lambda: wb.open(REPO_LINK, new=1))
+    repo_button.grid(row=2, column=1, sticky='NESW')
+    # adds button to close help window
+    cancel_info_button = tk.Button(info_window,
+                                   text='Cancel',
+                                   command=info_window.destroy)
+    cancel_info_button.grid(row=2, column=2, sticky='NESW')
 
     info_window.mainloop()
 
