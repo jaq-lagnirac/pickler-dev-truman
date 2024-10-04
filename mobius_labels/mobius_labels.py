@@ -227,8 +227,9 @@ def open_info_help() -> None:
     info_scrollbar.config(command=info_textbox.yview)
 
     # adds text to text widget
+    info_txt_path = resource_path('info-help-text.txt')
     info_text = None # scope resolution
-    with open('info-help-text.txt', 'r') as file:
+    with open(info_txt_path, 'r') as file:
         info_text = file.read()
     info_textbox.insert('end', info_text) # needs to be before text disable
     info_textbox.config(state='disabled') # disables editing of help text
