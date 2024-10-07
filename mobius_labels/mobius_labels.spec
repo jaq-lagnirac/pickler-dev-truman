@@ -5,7 +5,7 @@ a = Analysis(
     ['mobius_labels.py'],
     pathex=[],
     binaries=[('Release-24.07.0-0', 'Release-24.07.0-0')],
-    datas=[('logo-black-transparent.png', '.'), ('info-help-text.txt', '.')],
+    datas=[('images', 'images'), ('texts', 'texts')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
@@ -35,5 +35,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='mobius-label-icon.ico',
+    icon='images\mobius-label-icon.ico',
 )

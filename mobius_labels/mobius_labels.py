@@ -33,6 +33,8 @@ SUCCESS_COL = '#00dd00'
 FAIL_COL = '#ff0000'
 DEFAULT_COL = '#000000'
 FONT_TUPLE = ('Verdana', 10)
+LOGO_PATH = os.path.join('images', 'logo-black-transparent.png')
+HELP_PATH = os.path.join('texts', 'info-help-text.txt')
 
 # scope resolution for global variables extracted from config.json
 # capitalized because these are essentially constants, they won't be
@@ -198,6 +200,9 @@ def open_info_help() -> None:
         None
     """
 
+    # initializes edge alignment for text box and cancel button
+    INFO_X_PADDING = 20
+
     # initializes start-up
     info_window = tk.Toplevel()
     info_window.resizable(False, False)
@@ -205,7 +210,7 @@ def open_info_help() -> None:
 
     # adds logo image
     INFO_IMAGE_MULTIPLIER = 0.9
-    info_image = Image.open(resource_path('logo-black-transparent.png')) # opens image
+    info_image = Image.open(resource_path(LOGO_PATH)) # opens image
     info_image = image.resize(size=[int(INFO_IMAGE_MULTIPLIER * length) for length in image.size])
     info_logo = ImageTk.PhotoImage(info_image) # converts image to format usable by Tkinter
     tk.Label(info_window, image=info_logo).grid(row=0, column=0, columnspan=3)
@@ -213,10 +218,8 @@ def open_info_help() -> None:
     # creates text widget
     info_textbox = tk.Text(info_window,
                            wrap='word',
-                        #    height=550,
-                        #    width=650,
                            font=FONT_TUPLE)
-    info_textbox.grid(row=1, column=0, columnspan=3)
+    info_textbox.grid(row=1, column=0, columnspan=3, padx=(INFO_X_PADDING, INFO_X_PADDING))
 
     # creates scrollbar
     info_scrollbar = tk.Scrollbar(info_window)
@@ -227,7 +230,7 @@ def open_info_help() -> None:
     info_scrollbar.config(command=info_textbox.yview)
 
     # adds text to text widget
-    info_txt_path = resource_path('info-help-text.txt')
+    info_txt_path = resource_path(HELP_PATH)
     info_text = None # scope resolution
     with open(info_txt_path, 'r') as file:
         info_text = file.read()
@@ -235,15 +238,24 @@ def open_info_help() -> None:
     info_textbox.config(state='disabled') # disables editing of help text
 
     # adds button to repository documentation
+    INFO_BUTTON_NARROWER = 10
+    INFO_Y_PADDING_TUPLE = (10, 20)
     repo_button = tk.Button(info_window,
                             text='More...',
                             command=lambda: wb.open(REPO_LINK, new=1))
-    repo_button.grid(row=2, column=1, sticky='NESW')
+    repo_button.grid(row=2,
+                     column=1,
+                     sticky='NESW',
+                     pady=INFO_Y_PADDING_TUPLE)
     # adds button to close help window
     cancel_info_button = tk.Button(info_window,
                                    text='Cancel',
                                    command=info_window.destroy)
-    cancel_info_button.grid(row=2, column=2, sticky='NESW')
+    cancel_info_button.grid(row=2,
+                            column=2,
+                            sticky='NESW',
+                            padx=(0, INFO_X_PADDING),
+                            pady=INFO_Y_PADDING_TUPLE)
 
     info_window.mainloop()
 
@@ -585,6 +597,9 @@ if __name__ == '__main__':
     DEFAULT_TEMPLATE_NAME = os.path.join(os.getcwd(), 'mobius_label.pdf')
     DEFAULT_CONFIG_NAME = os.path.join(os.getcwd(), 'config.json')
     DEFAULT_OFFSET_VALUE = '0'
+    X_WIDGET_PADDING = 20
+    TEXT_SIDE_PADDING = (X_WIDGET_PADDING, 0)
+    INPUT_SIDE_PADDING = (0, X_WIDGET_PADDING)
     
     root = tk.Tk()
     root.resizable(False, False)
@@ -592,45 +607,60 @@ if __name__ == '__main__':
 
     IMAGE_ROW = 0
     IMAGE_COLUMN = 0
-    image = Image.open(resource_path('logo-black-transparent.png')) # opens image
+    image = Image.open(resource_path(LOGO_PATH)) # opens image
     image = image.resize(size=[int(IMAGE_MULTIPLIER * length) for length in image.size])
     logo = ImageTk.PhotoImage(image) # converts image to format usable by Tkinter
-    tk.Label(root, image=logo).grid(row=IMAGE_ROW, column=IMAGE_COLUMN, columnspan=100)
+    tk.Label(root, image=logo).grid(row=IMAGE_ROW,
+                                    column=IMAGE_COLUMN,
+                                    columnspan=100,
+                                    padx=(X_WIDGET_PADDING, X_WIDGET_PADDING))
 
     # requests path of template PDF
     TEMPLATE_ROW = IMAGE_ROW + 1
     TEMPLATE_COLUMN = IMAGE_COLUMN
     template_txt = tk.Label(root, text='Path to template PDF:\t', font=FONT_TUPLE)
-    template_txt.grid(sticky='W', row=TEMPLATE_ROW, column=TEMPLATE_COLUMN)
+    template_txt.grid(sticky='W',
+                      row=TEMPLATE_ROW,
+                      column=TEMPLATE_COLUMN,
+                      padx=TEXT_SIDE_PADDING)
     template_relpath = tk.Entry(root, width=INPUT_WIDTH)
     template_relpath.grid(sticky='E',
                           row=TEMPLATE_ROW,
                           column=TEMPLATE_COLUMN + 1,
-                          columnspan=BUTTON_COUNT)
+                          columnspan=BUTTON_COUNT,
+                          padx=INPUT_SIDE_PADDING)
     template_relpath.insert(0, DEFAULT_TEMPLATE_NAME) # default value
 
     # requests path of config.json
     CONFIG_ROW = TEMPLATE_ROW + 1
     CONFIG_COLUMN = IMAGE_COLUMN
     config_txt = tk.Label(root, text='Path to configuration file:\t', font=FONT_TUPLE)
-    config_txt.grid(sticky='W', row=CONFIG_ROW, column=CONFIG_COLUMN)
+    config_txt.grid(sticky='W',
+                    row=CONFIG_ROW,
+                    column=CONFIG_COLUMN,
+                    padx=TEXT_SIDE_PADDING)
     config_relpath = tk.Entry(root, width=INPUT_WIDTH)
     config_relpath.grid(sticky='E',
                         row=CONFIG_ROW,
                         column=CONFIG_COLUMN + 1,
-                        columnspan=BUTTON_COUNT)
+                        columnspan=BUTTON_COUNT,
+                        padx=INPUT_SIDE_PADDING)
     config_relpath.insert(0, DEFAULT_CONFIG_NAME) # default value
 
     # requests label offset (to allow for printing on used label sheets)
     OFFSET_ROW = CONFIG_ROW + 1
     OFFSET_COLUMN = IMAGE_COLUMN
     label_offset_txt = tk.Label(root, text='Label offset value (0-7):\t', font=FONT_TUPLE)
-    label_offset_txt.grid(sticky='W', row=OFFSET_ROW, column=OFFSET_COLUMN)
+    label_offset_txt.grid(sticky='W',
+                          row=OFFSET_ROW,
+                          column=OFFSET_COLUMN,
+                          padx=TEXT_SIDE_PADDING)
     offset_value = tk.Entry(root, width=INPUT_WIDTH)
     offset_value.grid(sticky='E',
                       row=OFFSET_ROW,
                       column=OFFSET_COLUMN + 1,
-                      columnspan=BUTTON_COUNT)
+                      columnspan=BUTTON_COUNT,
+                      padx=INPUT_SIDE_PADDING)
     offset_value.insert(0, DEFAULT_OFFSET_VALUE) # default value
     # validation commands for offset
     validate_offset = lambda char : char.isdigit() and int(char) <= 7 and int(char) >= 0
@@ -643,7 +673,9 @@ if __name__ == '__main__':
     offset_msg.grid(sticky='W', 
                     row=OFFSET_ROW + 1,
                     column=OFFSET_COLUMN,
-                    columnspan=100)
+                    columnspan=100,
+                    padx=TEXT_SIDE_PADDING,
+                    pady=(5, 0))
 
     # bottom rows
     BOTTOM_ROW = 100 # arbitrarily large number
@@ -651,14 +683,25 @@ if __name__ == '__main__':
     STATUS_ROW = BUTTON_ROW - 1
     BUTTON_COLUMN_START = IMAGE_COLUMN + 1
     status = tk.Label(root, text='', font=FONT_TUPLE)
-    status.grid(sticky='W', row=STATUS_ROW, column=IMAGE_COLUMN, columnspan=100)
+    status.grid(sticky='W',
+                row=STATUS_ROW,
+                column=IMAGE_COLUMN,
+                columnspan=100,
+                padx=TEXT_SIDE_PADDING)
     # NOTE: sticky='NESW' used to fill box to fit column and row
     enter_button = tk.Button(root, text='Enter', command=start_label_generation)
-    enter_button.grid(sticky='NESW', row=BUTTON_ROW, column=BUTTON_COLUMN_START)
+    enter_button.grid(sticky='NESW',
+                      row=BUTTON_ROW,
+                      column=BUTTON_COLUMN_START)
     help_button = tk.Button(root, text='Info/Help', command=open_info_help)
-    help_button.grid(sticky='NESW', row=BUTTON_ROW, column=BUTTON_COLUMN_START + 1)
+    help_button.grid(sticky='NESW',
+                     row=BUTTON_ROW,
+                     column=BUTTON_COLUMN_START + 1)
     cancel_button = tk.Button(root, text='Cancel', command=root.destroy)
-    cancel_button.grid(sticky='NESW', row=BUTTON_ROW, column=BUTTON_COLUMN_START + 2)
+    cancel_button.grid(sticky='NESW',
+                       row=BUTTON_ROW,
+                       column=BUTTON_COLUMN_START + 2,
+                       padx=(0, X_WIDGET_PADDING))
 
     # bottom credits
     description = tk.Label(root,
