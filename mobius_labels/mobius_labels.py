@@ -218,7 +218,7 @@ def open_info_help() -> None:
     # creates text widget
     info_textbox = tk.Text(info_window,
                            wrap='word',
-                           font=FONT_TUPLE)
+                           font=('Courier New', FONT_TUPLE[1]))
     info_textbox.grid(row=1, column=0, columnspan=3, padx=(INFO_X_PADDING, INFO_X_PADDING))
 
     # creates scrollbar
