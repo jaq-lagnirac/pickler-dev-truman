@@ -61,4 +61,4 @@ Technical Services & Systems of Pickler Memorial Library at Truman State
 University and developed by Justin Caringal of Truman State University.
 
 Text originally published 2024-10-04, v1.1.0.
-Last updated 2024-10-04, v1.1.2.
+Last updated 2024-10-08, v1.1.2.
