@@ -5,7 +5,7 @@
 # requested materials between libraries
 #
 # Project start date (for jaq): 2024-09-13
-# Project end date: TBD
+# Project end date: 2024-10-09
 
 ### LIBRARIES / PACKAGES ###
 
@@ -342,13 +342,13 @@ def extract_info_list(f : folioclient.FolioClient,
         # dict to store info per request
         request_info = None # scope resolution
         try:
-            request_info = { # primary key = shelvingOrder, not displaying
+            request_info = { # combo-key = Location, shelvingOrder
                 'Title' : request['instance']['title'],
                 'CallNumber' : request['searchIndex']['callNumberComponents']['callNumber'],
-                'ShelvingOrder' : request['searchIndex']['shelvingOrder'], # primary key
+                'ShelvingOrder' : request['searchIndex']['shelvingOrder'], # secondary key, not displayed
                 'SendTo' : request['searchIndex']['pickupServicePointName'],
                 'Patron' : f'{request["requester"]["lastName"]} {request["requester"]["barcode"]}',
-                'Location' : item['effectiveLocation']['name'],
+                'Location' : item['effectiveLocation']['name'], # primary key
                 'LibCode' : LIB_CODE,
                 'SuppliedBy' : SUPPLIED_BY
             } # NOTE: these are identical to the PDF labels to allow for ease-of-input
@@ -357,8 +357,9 @@ def extract_info_list(f : folioclient.FolioClient,
         
         info_list.append(request_info) # adds info to list
     
-    # returns sorted list; sorted based off primary key (shelvingOrder)
-    return sorted(info_list, key=lambda request_info : request_info['ShelvingOrder'])
+    # sorts list based off Location first, then Shelving Order
+    sorting_reqs = lambda info : (info['Location'], info['ShelvingOrder'])
+    return sorted(info_list, key=sorting_reqs)
 
 
 def generate_label(template_pdf : str,

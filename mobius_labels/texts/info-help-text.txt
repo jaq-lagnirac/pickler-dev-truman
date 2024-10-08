@@ -1,5 +1,13 @@
 Welcome to Mobius Label Generator!
 
+TABLE OF CONTENTS:
+    1. PURPOSE
+    2. TEMPLATE PDF
+    3. CONFIGURATION FILE
+    4. OFFSETS
+    5. CREDITS AND CLOSING
+
+PURPOSE:
 This program is intended as an open source generator to create labels to help 
 facilitate interlibrary loans within the MOBIUS Linking Libraries Consortium.
 The tool takes a template PDF given by the user (created using an external
@@ -59,6 +67,9 @@ Developed for use and further development on Windows using Python 3.12+.
 This tool was commissioned by Stephen Wynn, the Associate Dean of Libraries for
 Technical Services & Systems of Pickler Memorial Library at Truman State
 University and developed by Justin Caringal of Truman State University.
+
+More information can be found by visiting README.md and USERMANUAL.md linked
+in the project repository. Click "More..." for details.
 
 Text originally published 2024-10-04, v1.1.0.
 Last updated 2024-10-08, v1.1.2.
