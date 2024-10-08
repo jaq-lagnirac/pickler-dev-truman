@@ -15,7 +15,7 @@ the PDF must have the following fields (labeled using an external tool):
     - "Title" : The title of the piece of medium, FOLIO includes the author
         in this field on occasion.
     - "CallNumber" : The call number of the item.
-    - "Send To" : The intended destination of the item.
+    - "SendTo" : The intended destination of the item.
     - "Patron" : An anonymized patron code, the intended recipient of the item.
     - "Location" : The shelving location of the requested item.
     - "LibCode" : The MOBIUS Library Code from the config.json file (See
@@ -61,4 +61,4 @@ Technical Services & Systems of Pickler Memorial Library at Truman State
 University and developed by Justin Caringal of Truman State University.
 
 Text originally published 2024-10-04, v1.1.0.
-Last updated 2024-10-04, v1.1.0.
+Last updated 2024-10-04, v1.1.2.
