@@ -17,6 +17,13 @@ for use and printing on a 4x2 sticker sheet.
 This project was developed using [Python 3.12+](https://www.python.org/) for
 use and future development on Windows.
 
+## Table of Contents
+
+1. [Manuals](#manuals)
+1. [Useful Links](#useful-links)
+1. [Credits](#credits)
+1. [Timestamp Details](#timestamp-details)
+
 ## Manuals
 
 This project is intended for long-term support and development on the free
@@ -54,4 +61,4 @@ of [Truman State University](https://www.truman.edu/).
 - **Initial project delivery date:** 2024-10-09
 - **README.md originally published:** 2024-10-09, Project v2.0.0
 - **README.md last updated:** 2024-10-09, Project v2.0.0
-- **README.md version:** v1.0
+- **README.md version:** v1.1
