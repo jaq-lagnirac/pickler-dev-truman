@@ -98,8 +98,6 @@ field. At minimum, the JSON must have the following keys and values:
 - `tenant` : The tenant ID for the institution.
 - `username` : The individual user of the institution.
 - `password` : The password for the associated account.
-- `home_lib` : The internal MOBIUS name for the Home Library (the library
-executing the call).
 
 **Please note:** The generator is case-sensitive&mdash;the keys must be exact.
 Please visit the repository for an editable template config.json file.
@@ -147,5 +145,5 @@ of [Truman State University](https://www.truman.edu/).
 ## Timestamp Details
 
 - **USERMANUAL.md originally published:** 2024-10-09, Project v2.0.0
-- **USERMANUAL.md last updated:** 2024-10-09, Project v2.0.0
-- **USERMANUAL.md version:** v1.0
+- **USERMANUAL.md last updated:** 2024-10-14, Project v2.0.0+
+- **USERMANUAL.md version:** v1.1

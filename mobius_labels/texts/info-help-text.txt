@@ -43,8 +43,6 @@ field. At minimum, the JSON must have the following keys and values:
     - "tenant" : The tenant ID for the institution.
     - "username" : The individual user of the institution.
     - "password" : The password for the associated account.
-    - "home_lib" : The internal MOBIUS name for the Home Library (the library
-        executing the call).
 Please note: The generator is case-sensitive. Only include what is in between
 the quotation marks part of the labels and not the marks themselves. Please
 visit the repository for an editable template config.json file.
@@ -68,4 +66,4 @@ More information can be found by visiting README.md and USERMANUAL.md linked
 in the project repository. Click "More..." for details.
 
 Text originally published 2024-10-04, v1.1.0.
-Last updated 2024-10-09, v2.0.0.
+Last updated 2024-10-14, v2.0.0+.
