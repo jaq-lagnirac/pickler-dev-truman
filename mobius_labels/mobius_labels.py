@@ -39,8 +39,9 @@ HELP_PATH = os.path.join('texts', 'info-help-text.txt')
 # scope resolution for global variables extracted from config.json
 # capitalized because these are essentially constants, they won't be
 # manipulated by the program, only used as inputs
-LIB_CODE = None
-SUPPLIED_BY = None
+# LIB_CODE = None
+# SUPPLIED_BY = None
+HOME_LIB = None
 
 # keys required in config.json
 REQUIRED_CONFIG_KEYS = {
@@ -48,8 +49,9 @@ REQUIRED_CONFIG_KEYS = {
     'tenant',
     'username',
     'password',
-    'lib_code',
-    'supplied_by'
+    # 'lib_code',
+    # 'supplied_by',
+    'home_lib',
     }
 
 # dynamic keys for pdf generation
@@ -59,8 +61,8 @@ REQUIRED_PDF_KEYS = {
     'SendTo',
     'Patron',
     'Location',
-    'LibCode',
-    'SuppliedBy'
+    # 'LibCode',
+    # 'SuppliedBy',
     } # ShelvingOrder not required by PDF but searched for by program
 
 ### FUNCTIONS ###
@@ -238,7 +240,6 @@ def open_info_help() -> None:
     info_textbox.config(state='disabled') # disables editing of help text
 
     # adds button to repository documentation
-    INFO_BUTTON_NARROWER = 10
     INFO_Y_PADDING_TUPLE = (10, 20)
     repo_button = tk.Button(info_window,
                             text='More...',
@@ -274,8 +275,9 @@ def login_folioclient() -> folioclient.FolioClient:
     """
 
     # connects global variables
-    global LIB_CODE
-    global SUPPLIED_BY
+    # global LIB_CODE
+    # global SUPPLIED_BY
+    global HOME_LIB
 
     config_name = config_relpath.get()
 
@@ -299,8 +301,9 @@ def login_folioclient() -> folioclient.FolioClient:
     tenant = login['tenant']
     username = login['username']
     password = login['password']
-    LIB_CODE = login['lib_code']
-    SUPPLIED_BY = login['supplied_by']
+    # LIB_CODE = login['lib_code']
+    # SUPPLIED_BY = login['supplied_by']
+    HOME_LIB = login['home_lib']
 
     # attempts FOLIO API handshake
     f = None # scope resolution
@@ -347,11 +350,20 @@ def extract_info_list(f : folioclient.FolioClient,
                 'CallNumber' : request['searchIndex']['callNumberComponents']['callNumber'],
                 'ShelvingOrder' : request['searchIndex']['shelvingOrder'], # secondary key, not displayed
                 'SendTo' : request['searchIndex']['pickupServicePointName'],
-                'Patron' : f'{request["requester"]["lastName"]} {request["requester"]["barcode"]}',
                 'Location' : item['effectiveLocation']['name'], # primary key
-                'LibCode' : LIB_CODE,
-                'SuppliedBy' : SUPPLIED_BY
+                # 'LibCode' : LIB_CODE,
+                # 'SuppliedBy' : SUPPLIED_BY,
             } # NOTE: these are identical to the PDF labels to allow for ease-of-input
+
+            # if the requester comes from the home library (i.e. the library
+            # executing the program and making the call) then print the last and
+            # first name of the requester. Otherwise, print the DcbSystem barcode
+            requester_info = request['requester']
+            if request_info['SendTo'] == HOME_LIB:
+                requester_name = f'{requester_info["lastName"]}, {requester_info["firstName"]}'
+                request_info['Patron'] = requester_name
+            else:
+                request_info['Patron'] = requester_info['barcode']
         except Exception as e:
             error_msg(f'Error occured with request info dict assembly; missing fields.\n{e}')
         

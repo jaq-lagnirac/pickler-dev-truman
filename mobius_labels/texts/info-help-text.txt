@@ -24,12 +24,10 @@ the PDF must have the following fields (labeled using an external tool):
         in this field on occasion.
     - "CallNumber" : The call number of the item.
     - "SendTo" : The intended destination of the item.
-    - "Patron" : An anonymized patron code, the intended recipient of the item.
+    - "Patron" : If the request comes from the Home Libary listed in the
+        config.json file (see CONFIGURATION FILE), the requester's last and
+        first name are displayed. Otherwise, the DcbSystem barcode is printed.
     - "Location" : The shelving location of the requested item.
-    - "LibCode" : The MOBIUS Library Code from the config.json file (See
-        CONFIGURATION FILE).
-    - "SuppliedBy" : The address of the sender of the item from the config.json
-        file (See CONFIGURATION FILE).
 Please note: The generator is case-sensitive. Only include what is in between
 the quotation marks part of the labels and not the marks themselves. Please
 visit the repository for an example mobius_label.pdf as well as an editable 
@@ -45,10 +43,8 @@ field. At minimum, the JSON must have the following keys and values:
     - "tenant" : The tenant ID for the institution.
     - "username" : The individual user of the institution.
     - "password" : The password for the associated account.
-    - "lib_code" : The MOBIUS Library Code, typically 4-6 letters for MOBIUS
-        members
-    - "supplied_by" : The address of the sender. Can contain up to a 4-line
-        address, with each line separated by a newline character ("\n").
+    - "home_lib" : The internal MOBIUS name for the Home Library (the library
+        executing the call).
 Please note: The generator is case-sensitive. Only include what is in between
 the quotation marks part of the labels and not the marks themselves. Please
 visit the repository for an editable template config.json file.
@@ -72,4 +68,4 @@ More information can be found by visiting README.md and USERMANUAL.md linked
 in the project repository. Click "More..." for details.
 
 Text originally published 2024-10-04, v1.1.0.
-Last updated 2024-10-08, v1.1.2.
+Last updated 2024-10-09, v2.0.0.
