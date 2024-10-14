@@ -61,6 +61,7 @@ REQUIRED_PDF_KEYS = {
     'SendTo',
     'Patron',
     'Location',
+    'Barcode',
     # 'LibCode',
     # 'SuppliedBy',
     } # ShelvingOrder not required by PDF but searched for by program
@@ -351,6 +352,7 @@ def extract_info_list(f : folioclient.FolioClient,
                 'ShelvingOrder' : request['searchIndex']['shelvingOrder'], # secondary key, not displayed
                 'SendTo' : request['searchIndex']['pickupServicePointName'],
                 'Location' : item['effectiveLocation']['name'], # primary key
+                'Barcode' : request['item']['barcode'],
                 # 'LibCode' : LIB_CODE,
                 # 'SuppliedBy' : SUPPLIED_BY,
             } # NOTE: these are identical to the PDF labels to allow for ease-of-input
