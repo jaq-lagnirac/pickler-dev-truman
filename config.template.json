@@ -3,5 +3,4 @@
     "tenant" : "[INSTITUTION ID]",
     "username" : "[USERNAME]",
     "password" : "[PASSWORD]",
-    "home_lib" : "[INTERNAL MOBIUS NAME FOR HOME LIBRARY]",
 }
