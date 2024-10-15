@@ -42,22 +42,12 @@ FONT_TUPLE = ('Verdana', 10)
 LOGO_PATH = os.path.join('images', 'logo-black-transparent.png')
 HELP_PATH = os.path.join('texts', 'info-help-text.txt')
 
-# scope resolution for global variables extracted from config.json
-# capitalized because these are essentially constants, they won't be
-# manipulated by the program, only used as inputs
-# LIB_CODE = None
-# SUPPLIED_BY = None
-# HOME_LIB = None
-
 # keys required in config.json
 REQUIRED_CONFIG_KEYS = {
     'okapi_url',
     'tenant',
     'username',
     'password',
-    # 'lib_code',
-    # 'supplied_by',
-    # 'home_lib',
     }
 
 # dynamic keys for pdf generation
@@ -65,11 +55,8 @@ REQUIRED_PDF_KEYS = {
     'Title',
     'CallNumber',
     'SendTo',
-    # 'Patron',
     'Location',
     'Barcode',
-    # 'LibCode',
-    # 'SuppliedBy',
     } # ShelvingOrder not required by PDF but searched for by program
 
 ### FUNCTIONS ###
@@ -78,7 +65,7 @@ def update_warning(entry : tk.Event) -> None:
     """Updates offset_warning based off of input.
     
     A function which updates a tkinter Label based off of
-    the input to the offset_value Entry
+    the input to the offset_value Entry.
     
     Args:
         entry (str): The user-inputted entry, not interacted with
@@ -100,14 +87,15 @@ def update_warning(entry : tk.Event) -> None:
         is_offset = lambda label : 'X' if int(user_offset) <= label else ' '
         offset_diagram = \
             f' {is_offset(0)}|{is_offset(1)}\n' + \
-            '----\n' + \
+            '-----\n' + \
             f' {is_offset(2)}|{is_offset(3)}\n' + \
-            '----\n' + \
+            '-----\n' + \
             f' {is_offset(4)}|{is_offset(5)}\n' + \
-            '----\n' + \
+            '-----\n' + \
             f' {is_offset(6)}|{is_offset(7)}\n'
 
-        offset_msg.config(text='Valid offset. \"X\" will be printed.\n' + offset_diagram,
+        offset_msg.config(text='Valid offset. \"X\" will be printed.\n' + \
+                          offset_diagram,
                           fg=SUCCESS_COL)
         enter_button.config(state='normal') # enables button to allow label generation
     root.update()
@@ -145,7 +133,7 @@ def error_msg(msg : str = 'Unknown error occured.') -> None:
     
     A function which organizes the creation of a TKinter box
     to show error and clean-up operations, after which the
-    system exits and terminates the program
+    system exits and terminates the program.
     
     Args:
         msg (str): the message the user sees
@@ -176,7 +164,7 @@ def safe_exit(msg : str = '', col : str = DEFAULT_COL) -> None:
 
     Execution of this function does not necessarily denote error,
     as this function is also called on a success. This is more so
-    a way to handle the clean up procedures of the root window
+    a way to handle the clean up procedures of the root window.
 
     Args:
         msg (str): The status message to be displayed to the user
@@ -228,7 +216,10 @@ def open_info_help() -> None:
     info_textbox = tk.Text(info_window,
                            wrap='word',
                            font=('Courier New', FONT_TUPLE[1]))
-    info_textbox.grid(row=1, column=0, columnspan=3, padx=(INFO_X_PADDING, INFO_X_PADDING))
+    info_textbox.grid(row=1,
+                      column=0,
+                      columnspan=3,
+                      padx=(INFO_X_PADDING, INFO_X_PADDING))
 
     # creates scrollbar
     info_scrollbar = tk.Scrollbar(info_window)
@@ -281,11 +272,6 @@ def login_folioclient() -> folioclient.FolioClient:
         FolioClient: Returns an API object to the FOLIOClient
     """
 
-    # connects global variables
-    # global LIB_CODE
-    # global SUPPLIED_BY
-    # global HOME_LIB
-
     config_name = config_relpath.get()
 
     # checks for existence of config.json file, notifies user if none available -jaq
@@ -308,9 +294,6 @@ def login_folioclient() -> folioclient.FolioClient:
     tenant = login['tenant']
     username = login['username']
     password = login['password']
-    # LIB_CODE = login['lib_code']
-    # SUPPLIED_BY = login['supplied_by']
-    # HOME_LIB = login['home_lib']
 
     # attempts FOLIO API handshake
     f = None # scope resolution
@@ -328,7 +311,7 @@ def extract_info_list(f : folioclient.FolioClient,
     
     A function which loops over the returned requests query, extracts
     the relevant info from each request, and stores it in a list of 
-    dictionaries
+    dictionaries.
     
     Args:
         requests_query (folioclient.generator): a non-iterable object
@@ -359,14 +342,12 @@ def extract_info_list(f : folioclient.FolioClient,
                 'SendTo' : request['searchIndex']['pickupServicePointName'],
                 'Location' : item['effectiveLocation']['name'], # primary key
                 'Barcode' : request['item']['barcode'],
-                # 'LibCode' : LIB_CODE,
-                # 'SuppliedBy' : SUPPLIED_BY,
             } # NOTE: these are identical to the PDF labels to allow for ease-of-input
 
         except Exception as e:
             error_msg(f'Error occured with request info dict assembly; missing fields.\n{e}')
         
-        info_list.append(request_info) # adds info to list
+        info_list.append(request_info) # adds info dict to list
     
     # sorts list based off Location first, then Shelving Order
     sorting_reqs = lambda info : (info['Location'], info['ShelvingOrder'])
@@ -380,7 +361,11 @@ def generate_label(template_pdf : str,
     
     A function which takes a template PDF and pipelines the extracted
     request into the template, saves it as a PDF, converts the 
-    PDF into a PNG, then deletes the superfluous PDF
+    PDF into a PNG, then deletes the superfluous PDF.
+
+    This function also generates a Barcode SVG using Code39 (at the time of
+    writing) from the extracted request information in order to be used
+    later in the program for label sheet generation.
     
     Args:
         template_pdf (str): relative path to input template PDF
@@ -422,8 +407,10 @@ def generate_label(template_pdf : str,
 def generate_labels_from_list(template_pdf : str, requests_list : list) -> int:
     """Organizes PNG generation from requests.
     
-    A function which takes a list of request information, inputs them into individual
-    template PDFs, then converts them into PNGs in the temporary working sub-directory
+    A function which takes a list of request information,
+    inputs them into individual template PDFs, then converts
+    them into labels and barcodes in the temporary
+    working sub-directory.
 
     Args:
         template_pdf (str): relative path of to input template PDF
@@ -446,7 +433,7 @@ def generate_labels_from_list(template_pdf : str, requests_list : list) -> int:
 
 
 def generate_label_sheet() -> str:
-    """Stitches together generated PNGs.
+    """Stitches together generated labels.
     
     A function which stitches together the generated PNG labels
     and generates a printable PDF to the current working directory
@@ -485,7 +472,7 @@ def generate_label_sheet() -> str:
     try:
         user_offset = int(offset_value.get())
     except ValueError:
-        # most likely ValueError due to bad offset input,
+        # most likely due to bad offset input,
         # should be prevented with button-locking
         # safely defaults to zero in case lock doesn't work
         # but will most likely never execute due to button-locking
@@ -513,8 +500,8 @@ def generate_label_sheet() -> str:
                         height=LABEL_HEIGHT)
         
         # draws barcode svg onto page
-        barcode = svg2rlg(barcode_path)
-        barcode.scale(0.5, 0.6)
+        barcode = svg2rlg(barcode_path) # loads barcode file
+        barcode.scale(0.6, 0.6) # scales barcode down to fit
         barcode.drawOn(canvas,
                        x=x_label + (LABEL_WIDTH / 2) + (0.25 * inch),
                        y=y_label)
@@ -694,7 +681,9 @@ if __name__ == '__main__':
     # automatic checking every time offset is inputted
     offset_value.bind('<KeyRelease>', update_warning)
     # label which is updated live on if offset input is valid
-    offset_msg = tk.Label(root, text='\n\n\n\n\n\n\n\n', font=FONT_TUPLE)
+    offset_msg = tk.Label(root,
+                          text='\n\n\n\n\n\n\n\n',
+                          font=('Courier New', FONT_TUPLE[1]))
     offset_msg.grid(sticky='W', 
                     row=OFFSET_ROW + 1,
                     column=OFFSET_COLUMN,
@@ -707,7 +696,7 @@ if __name__ == '__main__':
     BUTTON_ROW = BOTTOM_ROW - 10
     STATUS_ROW = BUTTON_ROW - 1
     BUTTON_COLUMN_START = IMAGE_COLUMN + 1
-    status = tk.Label(root, text='', font=FONT_TUPLE)
+    status = tk.Label(root, text='', font=('Courier New', FONT_TUPLE[1]))
     status.grid(sticky='W',
                 row=STATUS_ROW,
                 column=IMAGE_COLUMN,
