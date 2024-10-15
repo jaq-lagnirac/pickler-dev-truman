@@ -24,11 +24,17 @@ from reportlab.pdfgen.canvas import Canvas
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.units import inch
 from PIL import ImageTk, Image
+from barcode import Code39
+from barcode.writer import SVGWriter
+from svglib.svglib import svg2rlg
 
 ### GLOBAL CONSTANTS/VARIABLES ###
 
 REPO_LINK = 'https://github.com/jaq-lagnirac/'
 TEMPDIR = '.tmp_mobius_labels_jaq' # temporary directory to store intermediary generated files
+LABELDIR = os.path.join(TEMPDIR, 'labels')
+BARCODEDIR = os.path.join(TEMPDIR, 'barcodes')
+WORKING_DIRS = [TEMPDIR, LABELDIR, BARCODEDIR]
 SUCCESS_COL = '#00dd00'
 FAIL_COL = '#ff0000'
 DEFAULT_COL = '#000000'
@@ -41,7 +47,7 @@ HELP_PATH = os.path.join('texts', 'info-help-text.txt')
 # manipulated by the program, only used as inputs
 # LIB_CODE = None
 # SUPPLIED_BY = None
-HOME_LIB = None
+# HOME_LIB = None
 
 # keys required in config.json
 REQUIRED_CONFIG_KEYS = {
@@ -51,7 +57,7 @@ REQUIRED_CONFIG_KEYS = {
     'password',
     # 'lib_code',
     # 'supplied_by',
-    'home_lib',
+    # 'home_lib',
     }
 
 # dynamic keys for pdf generation
@@ -59,7 +65,7 @@ REQUIRED_PDF_KEYS = {
     'Title',
     'CallNumber',
     'SendTo',
-    'Patron',
+    # 'Patron',
     'Location',
     'Barcode',
     # 'LibCode',
@@ -278,7 +284,7 @@ def login_folioclient() -> folioclient.FolioClient:
     # connects global variables
     # global LIB_CODE
     # global SUPPLIED_BY
-    global HOME_LIB
+    # global HOME_LIB
 
     config_name = config_relpath.get()
 
@@ -304,7 +310,7 @@ def login_folioclient() -> folioclient.FolioClient:
     password = login['password']
     # LIB_CODE = login['lib_code']
     # SUPPLIED_BY = login['supplied_by']
-    HOME_LIB = login['home_lib']
+    # HOME_LIB = login['home_lib']
 
     # attempts FOLIO API handshake
     f = None # scope resolution
@@ -357,15 +363,6 @@ def extract_info_list(f : folioclient.FolioClient,
                 # 'SuppliedBy' : SUPPLIED_BY,
             } # NOTE: these are identical to the PDF labels to allow for ease-of-input
 
-            # if the requester comes from the home library (i.e. the library
-            # executing the program and making the call) then print the last and
-            # first name of the requester. Otherwise, print the DcbSystem barcode
-            requester_info = request['requester']
-            if request_info['SendTo'] == HOME_LIB:
-                requester_name = f'{requester_info["lastName"]}, {requester_info["firstName"]}'
-                request_info['Patron'] = requester_name
-            else:
-                request_info['Patron'] = requester_info['barcode']
         except Exception as e:
             error_msg(f'Error occured with request info dict assembly; missing fields.\n{e}')
         
@@ -394,21 +391,30 @@ def generate_label(template_pdf : str,
         bool: Returns True if successful
     """
 
+    ### GENERATES LABEL
+
     # generates temporary output pdf
-    tmp_output_pdf = os.path.join(TEMPDIR, f'tmp_{sorting_code}.pdf')
+    tmp_output_pdf = os.path.join(TEMPDIR, f'tmp_label_{sorting_code}.pdf')
     fillpdfs.write_fillable_pdf(template_pdf, tmp_output_pdf, request)
 
     # saves temporary pdf as png, should only be one pdf page
-    output_png = os.path.join(TEMPDIR, f'tmp_{sorting_code}.png') # png chosen for lossless compression
+    output_label = os.path.join(LABELDIR, f'tmp_label_{sorting_code}.png') # png chosen for lossless compression
     # NOTE: Poppler installation https://stackoverflow.com/a/70095504
     POPPLER_PATH = os.path.join('Release-24.07.0-0', 'poppler-24.07.0', 'Library', 'bin')
     images = convert_from_path(tmp_output_pdf, # list of images
                                poppler_path=resource_path(POPPLER_PATH))
-    images[0].save(output_png, 'PNG') # saves the first (and only) pdf page as a png
+    images[0].save(output_label, 'PNG') # saves the first (and only) pdf page as a png
 
     # deletes temporary output pdf, keeps png
     if os.path.exists(tmp_output_pdf): # prevents error if something should happen to the pdf
         os.remove(tmp_output_pdf)
+
+    ### GENERATES BARCODE
+
+    output_barcode = os.path.join(BARCODEDIR, f'tmp_barcode_{sorting_code}.svg')
+    barcode_number = request['Barcode']
+    with open(output_barcode, 'wb') as file:
+        Code39(barcode_number, writer=SVGWriter()).write(file)
 
     return True
 
@@ -473,11 +479,12 @@ def generate_label_sheet() -> str:
 
     # list of filenames in temporary directory, NOT relative paths
     # already be sorted based off of sorting code and numbering system
-    img_list = os.listdir(TEMPDIR)
+    labels = os.listdir(LABELDIR)
+    barcodes = os.listdir(BARCODEDIR)
     # user-inputted label offset, which spot to begin print job
     try:
         user_offset = int(offset_value.get())
-    except Exception:
+    except ValueError:
         # most likely ValueError due to bad offset input,
         # should be prevented with button-locking
         # safely defaults to zero in case lock doesn't work
@@ -485,9 +492,11 @@ def generate_label_sheet() -> str:
         user_offset = 0
 
     # iterates through list of images
-    for index, img in enumerate(img_list):
+    for index, (label_path, barcode_path) in enumerate(zip(labels, barcodes)):
         
-        img = os.path.join(TEMPDIR, img) # generates the relative path of the specific image
+        # generates the relative path of the specific images
+        label_path = os.path.join(LABELDIR, label_path)
+        barcode_path = os.path.join(BARCODEDIR, barcode_path)
 
         # calculates page positions and offsets for each individual label
         page_position = (index + user_offset) % TOTAL_LABELS # 8 positions on the page
@@ -495,11 +504,20 @@ def generate_label_sheet() -> str:
         y_offset = page_position // NUM_COLUMNS # integer division, which of the rows
         
         # draws label img onto page
-        canvas.drawImage(img,
-                        x=LABEL_WIDTH * x_offset, # inputs labels left-to-right
-                        y=LETTER_HEIGHT - (LABEL_HEIGHT * (1 + y_offset)), # inputs labels top-down
+        x_label = LABEL_WIDTH * x_offset # inputs labels left-to-right
+        y_label = LETTER_HEIGHT - (LABEL_HEIGHT * (1 + y_offset)) # inputs labels top-down
+        canvas.drawImage(label_path,
+                        x=x_label,
+                        y=y_label,
                         width=LABEL_WIDTH,
                         height=LABEL_HEIGHT)
+        
+        # draws barcode svg onto page
+        barcode = svg2rlg(barcode_path)
+        barcode.scale(0.5, 0.6)
+        barcode.drawOn(canvas,
+                       x=x_label + (LABEL_WIDTH / 2) + (0.25 * inch),
+                       y=y_label)
         
         # prevents overlap, >= used to catch rare (hopefully impossible) exceptions
         if page_position >= (TOTAL_LABELS - 1):
@@ -560,15 +578,6 @@ def start_label_generation() -> None:
 
     # extracting relevant info from requests_query
     requests_list = extract_info_list(f, requests_query)
-    # requests_list = [{
-    # 'Title' : 'Title',
-    # 'CallNumber' : 'CallNumber',
-    # 'SendTo' : 'SendTo',
-    # 'Patron' : 'Patron',
-    # 'Location' : 'Location',
-    # 'LibCode' : 'LibCode',
-    # 'SuppliedBy' : 'SuppliedBy'
-    # }] # temp test data when no requests are in FOLIO
     if not requests_list: # if requests_list is empty
         safe_exit(msg='No active requests detected.', col=SUCCESS_COL)
         return
@@ -578,7 +587,8 @@ def start_label_generation() -> None:
     # empty temporary working sub-directory
     if os.path.exists(TEMPDIR):
         shutil.rmtree(TEMPDIR)
-    os.makedirs(TEMPDIR)
+    for directory in WORKING_DIRS:
+        os.makedirs(directory)
 
     # generate images from requests list information
     status.config(text='Generating labels from list.', fg=DEFAULT_COL)
