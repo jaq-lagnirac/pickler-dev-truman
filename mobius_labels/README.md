@@ -12,7 +12,7 @@ The tool takes a template PDF given by the user (created using an external
 tool&mdash;such as
 [LibreOffice Writer](https://www.libreoffice.org/discover/writer/)&mdash;with
 standard 8.5"x11" landscape letter dimensions) and generates a label sheet PDF
-for use and printing on a 4x2 sticker sheet.
+for use and printing on a standard 8.5"x11" portrait letter 4x2 sticker sheet.
 
 This project was developed using [Python 3.12+](https://www.python.org/) for
 use and future development on Windows.
@@ -60,5 +60,5 @@ of [Truman State University](https://www.truman.edu/).
 - **Project start date:** 2024-09-13
 - **Initial project delivery date:** 2024-10-09
 - **README.md originally published:** 2024-10-09, Project v2.0.0
-- **README.md last updated:** 2024-10-09, Project v2.0.0
-- **README.md version:** v1.1
+- **README.md last updated:** 2024-10-15, Project v2.0.0+
+- **README.md version:** v1.2

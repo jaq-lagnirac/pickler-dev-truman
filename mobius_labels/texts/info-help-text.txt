@@ -12,8 +12,8 @@ This program is intended as an open source generator to create labels to help
 facilitate interlibrary loans within the MOBIUS Linking Libraries Consortium.
 The tool takes a template PDF given by the user (created using an external
 tool--such LibreOffice Writer--with standard 8.5"x11" landscape letter
-dimensions) and generates a label sheet PDF for use and printing on a 4x2 
-sticker sheet.
+dimensions) and generates a label sheet PDF for use and printing on a standard
+8.5"x11" portrait letter 4x2 sticker sheet.
 
 TEMPLATE PDF:
 The tool requires a user-inputted PDF (relative or absolute) path. The default
@@ -66,4 +66,4 @@ More information can be found by visiting README.md and USERMANUAL.md linked
 in the project repository. Click "More..." for details.
 
 Text originally published 2024-10-04, v1.1.0.
-Last updated 2024-10-14, v2.0.0+.
+Last updated 2024-10-15, v2.0.0+.
