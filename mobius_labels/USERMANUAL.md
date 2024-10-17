@@ -138,12 +138,12 @@ Developed for use and further development on Windows using Python 3.12+.
 This tool was commissioned by Stephen Wynn, the Associate Dean of Libraries for
 Technical Services & Systems of
 [Pickler Memorial Library](https://library.truman.edu/) at
-[Truman State University](https://www.truman.edu/) and developed by
+[Truman State University](https://www.truman.edu/). Developed by
 [Justin Caringal](https://jaq-lagnirac.github.io/)
 of [Truman State University](https://www.truman.edu/).
 
 ## Timestamp Details
 
 - **USERMANUAL.md originally published:** 2024-10-09, Project v2.0.0
-- **USERMANUAL.md last updated:** 2024-10-15, Project v2.0.0+
-- **USERMANUAL.md version:** v1.2
+- **USERMANUAL.md last updated:** 2024-10-17, Project v2.0.0+
+- **USERMANUAL.md version:** v1.3

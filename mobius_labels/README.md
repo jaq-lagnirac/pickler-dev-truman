@@ -51,7 +51,7 @@ document or in the relevant manual.
 This tool was commissioned by Stephen Wynn, the Associate Dean of Libraries for
 Technical Services & Systems of
 [Pickler Memorial Library](https://library.truman.edu/) at
-[Truman State University](https://www.truman.edu/) and developed by
+[Truman State University](https://www.truman.edu/). Developed by
 [Justin Caringal](https://jaq-lagnirac.github.io/)
 of [Truman State University](https://www.truman.edu/).
 
@@ -60,5 +60,5 @@ of [Truman State University](https://www.truman.edu/).
 - **Project start date:** 2024-09-13
 - **Initial project delivery date:** 2024-10-09
 - **README.md originally published:** 2024-10-09, Project v2.0.0
-- **README.md last updated:** 2024-10-15, Project v2.0.0+
-- **README.md version:** v1.2
+- **README.md last updated:** 2024-10-17, Project v2.0.0+
+- **README.md version:** v1.3

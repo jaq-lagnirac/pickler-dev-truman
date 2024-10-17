@@ -60,10 +60,11 @@ Developed for use and further development on Windows using Python 3.12+.
 
 This tool was commissioned by Stephen Wynn, the Associate Dean of Libraries for
 Technical Services & Systems of Pickler Memorial Library at Truman State
-University and developed by Justin Caringal of Truman State University.
+University. Developed by Justin Caringal, BSCS Class of 2025, of Truman State
+University.
 
 More information can be found by visiting README.md and USERMANUAL.md linked
 in the project repository. Click "More..." for details.
 
 Text originally published 2024-10-04, v1.1.0.
-Last updated 2024-10-15, v2.0.0+.
+Last updated 2024-10-17, v2.0.0+.
