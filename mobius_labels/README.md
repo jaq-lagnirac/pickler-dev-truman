@@ -52,7 +52,7 @@ This tool was commissioned by Stephen Wynn, the Associate Dean of Libraries for
 Technical Services & Systems of
 [Pickler Memorial Library](https://library.truman.edu/) at
 [Truman State University](https://www.truman.edu/). Developed by
-[Justin Caringal](https://jaq-lagnirac.github.io/)
+[Justin Caringal](https://jaq-lagnirac.github.io/), BSCS Class of 2025,
 of [Truman State University](https://www.truman.edu/).
 
 ## Timestamp Details
