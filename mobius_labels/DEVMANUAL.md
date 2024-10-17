@@ -124,15 +124,24 @@ other relevant and/or helpful links are bulleted underneath the main header.
 - [reportlab](https://pypi.org/project/reportlab/) - A library for generating
     PDFs and graphics from scratch. Used to tile the label PNGs and barcode
     SVGs to generate the final label sheet PDF.
+
+    Relevant links(s):
+    - [Documenation Website](https://docs.reportlab.com/)
+    - [Documentation PDF](https://www.reportlab.com/docs/reportlab-userguide.pdf)
 - [PIL/Pillow](https://pypi.org/project/pillow/) -
-- [poppler](https://pypi.org/project/python-poppler/) -
-    NOTE: NOT INSTALLED WITH PIP
+- [poppler](https://pypi.org/project/python-poppler/) - placeholder
+
+    ***NOTE: NOT INSTALLED WITH PIP***
 
     Relevant link(s):
-    - [Poppler Release downloads](https://github.com/oschwartz10612/poppler-windows/releases) by
-        [github@oschwartz10612](https://github.com/oschwartz10612)
+    - [Poppler Release downloads](https://github.com/oschwartz10612/poppler-windows/releases)
+        by [github@oschwartz10612](https://github.com/oschwartz10612)
     - Poppler version used by the program
         ([Release 24.07.0-0](https://github.com/oschwartz10612/poppler-windows/releases/tag/v24.07.0-0))
 - [barcode](https://pypi.org/project/python-barcode/) - 
+
+    Relevant link(s):
+    - [](https://python-barcode.readthedocs.io/en/stable/)
+-[svglib](https://pypi.org/project/svglib/)
 
 #### PyInstaller
