@@ -540,15 +540,15 @@ def start_label_generation() -> None:
     # checks to see if template pdf file exists
     template_pdf_path = template_relpath.get()
     if not os.path.exists(template_pdf_path):
-        error_msg(f'\"{template_pdf_path}\" not detected.')
         safe_exit()
+        error_msg(f'\"{template_pdf_path}\" not detected.')
     # checks to make sure template has all valid keys
     template_keys = fillpdfs.get_form_fields(template_pdf_path)
     if not REQUIRED_PDF_KEYS.issubset(set(template_keys.keys())):
+        safe_exit()
         error_msg(f'{template_pdf_path} does not have required keys.' + \
                   f'\nDetected keys: {set(template_keys.keys())}' + \
                   f'\nRequired keys: {REQUIRED_PDF_KEYS}')
-        safe_exit()
 
     f = login_folioclient() # config.json validation, generates FolioClient object
 
