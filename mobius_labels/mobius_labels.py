@@ -5,7 +5,7 @@
 # requested materials between libraries
 #
 # Project start date (for jaq): 2024-09-13
-# Project end date: 2024-10-09
+# Project end date: 2024-10-18
 
 ### LIBRARIES / PACKAGES ###
 
@@ -28,7 +28,7 @@ from barcode import Code39
 from barcode.writer import SVGWriter
 from svglib.svglib import svg2rlg
 
-### GLOBAL CONSTANTS/VARIABLES ###
+### GLOBAL CONSTANTS / VARIABLES ###
 
 REPO_LINK = 'https://github.com/jaq-lagnirac/'
 TEMPDIR = '.tmp_mobius_labels_jaq' # temporary directory to store intermediary generated files
