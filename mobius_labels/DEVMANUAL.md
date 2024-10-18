@@ -1,4 +1,4 @@
-# \[WIP v0.0\] Developer Manual - Mobius Label Generator
+# Developer Manual - Mobius Label Generator
 
 <div align="center">
     <img src="images_not_bundled/logo-color-background.png" width="500px" alt="MLG Logo">
@@ -20,6 +20,8 @@ developer at the time of writing, or the current maintainers of this project.
     - [Standard Library Dependencies](#standard-library-dependencies)
     - [External Dependencies](#external-dependencies)
         - [PyInstaller](#pyinstaller)
+1. [Credits and Closing](#credits-and-closing)
+1. [Timestamp Details](#timestamp-details)
 
 ## Purpose
 
@@ -46,6 +48,13 @@ at the time of writing.
     executable.
 
 ## Python Dependencies
+
+When working with Python, it is good practice to create a virtual development
+environment in order to have a cleaner workspace and to ensure that
+dependencies between projects do not overlap or conflict during development.
+
+Please follow the offical guide on how to create Python virtual environments
+[here](https://docs.python.org/3/library/venv.html).
 
 Below are a list of Python dependencies currently being used in the program.
 Each dependency contains a link to the documentation or associated website, a
@@ -128,20 +137,58 @@ other relevant and/or helpful links are bulleted underneath the main header.
     Relevant links(s):
     - [Documenation Website](https://docs.reportlab.com/)
     - [Documentation PDF](https://www.reportlab.com/docs/reportlab-userguide.pdf)
-- [PIL/Pillow](https://pypi.org/project/pillow/) -
-- [poppler](https://pypi.org/project/python-poppler/) - placeholder
+- [PIL/Pillow](https://pypi.org/project/pillow/) - A popular imaging library
+    often used as a dependency for other libraries; often serves as a standard
+    medium for working with images in Python. Used by `pdf2iamge` and 
+    `reportlab` as a shared dependency.
+- [poppler](https://pypi.org/project/python-poppler/) - A Python-specific
+    binding of the C++ poppler-cpp library, allowing the program to read,
+    render, and modify PDF documents. Poppler is a required dependency of
+    `pdf2image` and is not distributed by `PIP`. Instead, the most common way
+    to access poppler is to download the binaries from a Github page (linked
+    below), and place the path of the `bin/` directory directly in the code.
 
-    ***NOTE: NOT INSTALLED WITH PIP***
+    ***PLEASE NOTE: NOT INSTALLED WITH PIP***
 
     Relevant link(s):
     - [Poppler Release downloads](https://github.com/oschwartz10612/poppler-windows/releases)
         by [github@oschwartz10612](https://github.com/oschwartz10612)
     - Poppler version used by the program
         ([Release 24.07.0-0](https://github.com/oschwartz10612/poppler-windows/releases/tag/v24.07.0-0))
-- [barcode](https://pypi.org/project/python-barcode/) - 
+- [barcode](https://pypi.org/project/python-barcode/) - A simple library
+    to create barcodes of various standards in Python. Used to create Code39
+    barcodes of the item being transferred. It does not require any external
+    dependencies when generating SVG files.
 
     Relevant link(s):
-    - [](https://python-barcode.readthedocs.io/en/stable/)
--[svglib](https://pypi.org/project/svglib/)
+    - [Full barcode documentation](https://python-barcode.readthedocs.io/en/stable/)
+- [svglib](https://pypi.org/project/svglib/) - A library used as an extension
+    of `reportlab`, allowing a developer the ability to read SVG files and
+    convert them to a form readable by the ReportLab Open Source toolkit.
 
 #### PyInstaller
+
+[PyInstaller](https://pypi.org/project/pyinstaller/) was used to bundle the
+Python script and all of its external resources and dependencies into a single
+executable file for ease-of-distribution and use, removing the need for a
+full Python environment to be installed on a end-user's machine for full usage.
+
+Find the full documentation [here](https://pyinstaller.org/en/stable/), as well
+as the relevant SPEC file in the project repository.
+
+## Credits and Closing
+
+Developed for use and further development on Windows using Python 3.12+.
+
+This tool was commissioned by Stephen Wynn, the Associate Dean of Libraries for
+Technical Services & Systems of
+[Pickler Memorial Library](https://library.truman.edu/) at
+[Truman State University](https://www.truman.edu/). Developed by
+[Justin Caringal](https://jaq-lagnirac.github.io/), BSCS Class of 2025,
+of [Truman State University](https://www.truman.edu/).
+
+## Timestamp Details
+
+- **DEVMANUAL.md originally published:** 2024-10-18, Project v2.1.0
+- **DEVMANUAL.md last updated:** 2024-10-18, Project v2.1.0
+- **DEVMANUAL.md version:** v1.0
