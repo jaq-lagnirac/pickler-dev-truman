@@ -60,5 +60,5 @@ of [Truman State University](https://www.truman.edu/).
 - **Project start date:** 2024-09-13
 - **Initial project delivery date:** 2024-10-18
 - **README.md originally published:** 2024-10-09, Project v2.0.0
-- **README.md last updated:** 2024-10-17, Project v2.0.0+
+- **README.md last updated:** 2024-10-18, Project v2.1.0
 - **README.md version:** v1.4
