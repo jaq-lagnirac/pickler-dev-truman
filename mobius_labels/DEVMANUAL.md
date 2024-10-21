@@ -155,6 +155,11 @@ other relevant and/or helpful links are bulleted underneath the main header.
         by [github@oschwartz10612](https://github.com/oschwartz10612)
     - Poppler version used by the program
         ([Release 24.07.0-0](https://github.com/oschwartz10612/poppler-windows/releases/tag/v24.07.0-0))
+
+***Below are libraries and packages involved in deprecated features which
+are no longer part of the main release but are kept in for posterity as well as
+possible future development.***
+
 - [barcode](https://pypi.org/project/python-barcode/) - A simple library
     to create barcodes of various standards in Python. Used to create Code39
     barcodes of the item being transferred. It does not require any external
@@ -190,5 +195,5 @@ of [Truman State University](https://www.truman.edu/).
 ## Timestamp Details
 
 - **DEVMANUAL.md originally published:** 2024-10-18, Project v2.1.0
-- **DEVMANUAL.md last updated:** 2024-10-18, Project v2.1.0
-- **DEVMANUAL.md version:** v1.0
+- **DEVMANUAL.md last updated:** 2024-10-21, Project v2.2.0
+- **DEVMANUAL.md version:** v1.1

@@ -125,11 +125,13 @@ to erroneous behavior.
 ## Output Label Sheet
 
 After clicking `Enter`, wait until a green status message appears on the main
-window. After a successful generation, you will find a label sheet in the
-working directory named `YYYYMMDD_HHMMSS_label_sheet.pdf`. The file's prefix
-is generated using a modified
+window. After a successful generation, you will find a label sheet named
+`YYYYMMDD_HHMMSS_label_sheet.pdf` in an output directory named
+`MOBIUS_LABEL_OUTPUT_JAQ`. The file's prefix is generated using a modified
 [ISO 8601 Basic](https://en.wikipedia.org/wiki/ISO_8601) format denoting the 
-time of creation.
+time of creation. If the output sub-directory does not exist in the working
+directory, one will be created; in other words, you do not need to create the
+output directory manually.
 
 ## Credits and Closing
 
@@ -145,5 +147,5 @@ of [Truman State University](https://www.truman.edu/).
 ## Timestamp Details
 
 - **USERMANUAL.md originally published:** 2024-10-09, Project v2.0.0
-- **USERMANUAL.md last updated:** 2024-10-17, Project v2.0.0+
-- **USERMANUAL.md version:** v1.3
+- **USERMANUAL.md last updated:** 2024-10-21, Project v2.2.0
+- **USERMANUAL.md version:** v1.4

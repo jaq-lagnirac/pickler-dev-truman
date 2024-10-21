@@ -24,17 +24,14 @@ from reportlab.pdfgen.canvas import Canvas
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.units import inch
 from PIL import ImageTk, Image
-from barcode import Code39
-from barcode.writer import SVGWriter
-from svglib.svglib import svg2rlg
 
 ### GLOBAL CONSTANTS / VARIABLES ###
 
 REPO_LINK = 'https://github.com/jaq-lagnirac/'
 TEMPDIR = '.tmp_mobius_labels_jaq' # temporary directory to store intermediary generated files
 LABELDIR = os.path.join(TEMPDIR, 'labels')
-BARCODEDIR = os.path.join(TEMPDIR, 'barcodes')
-WORKING_DIRS = [TEMPDIR, LABELDIR, BARCODEDIR]
+OUTPUTDIR = 'MOBIUS_LABEL_OUTPUT_JAQ'
+WORKING_DIRS = [TEMPDIR, LABELDIR]
 SUCCESS_COL = '#00dd00'
 FAIL_COL = '#ff0000'
 DEFAULT_COL = '#000000'
@@ -362,10 +359,6 @@ def generate_label(template_pdf : str,
     A function which takes a template PDF and pipelines the extracted
     request into the template, saves it as a PDF, converts the 
     PDF into a PNG, then deletes the superfluous PDF.
-
-    This function also generates a Barcode SVG using Code39 (at the time of
-    writing) from the extracted request information in order to be used
-    later in the program for label sheet generation.
     
     Args:
         template_pdf (str): relative path to input template PDF
@@ -394,13 +387,6 @@ def generate_label(template_pdf : str,
     if os.path.exists(tmp_output_pdf): # prevents error if something should happen to the pdf
         os.remove(tmp_output_pdf)
 
-    ### GENERATES BARCODE
-
-    output_barcode = os.path.join(BARCODEDIR, f'tmp_barcode_{sorting_code}.svg')
-    barcode_number = request['Barcode']
-    with open(output_barcode, 'wb') as file:
-        Code39(barcode_number, writer=SVGWriter()).write(file)
-
     return True
 
 
@@ -409,7 +395,7 @@ def generate_labels_from_list(template_pdf : str, requests_list : list) -> int:
     
     A function which takes a list of request information,
     inputs them into individual template PDFs, then converts
-    them into labels and barcodes in the temporary
+    them into labels in the temporary
     working sub-directory.
 
     Args:
@@ -462,12 +448,16 @@ def generate_label_sheet() -> str:
     iso8601_timecode = time.strftime('%Y%m%d_%H%M%S', time.localtime())
     output_sheet_name = f'{iso8601_timecode}_label_sheet.pdf'
 
-    canvas = Canvas(output_sheet_name, pagesize=letter) # initializes blank page
+    # creates label output directory if one does not exist
+    if not os.path.exists(OUTPUTDIR):
+        os.makedirs(OUTPUTDIR)
+    output_path = os.path.join(OUTPUTDIR, output_sheet_name)
+
+    canvas = Canvas(output_path, pagesize=letter) # initializes blank page
 
     # list of filenames in temporary directory, NOT relative paths
     # already be sorted based off of sorting code and numbering system
     labels = os.listdir(LABELDIR)
-    barcodes = os.listdir(BARCODEDIR)
     # user-inputted label offset, which spot to begin print job
     try:
         user_offset = int(offset_value.get())
@@ -479,11 +469,10 @@ def generate_label_sheet() -> str:
         user_offset = 0
 
     # iterates through list of images
-    for index, (label_path, barcode_path) in enumerate(zip(labels, barcodes)):
+    for index, label_path in enumerate(labels):
         
         # generates the relative path of the specific images
         label_path = os.path.join(LABELDIR, label_path)
-        barcode_path = os.path.join(BARCODEDIR, barcode_path)
 
         # calculates page positions and offsets for each individual label
         page_position = (index + user_offset) % TOTAL_LABELS # 8 positions on the page
@@ -499,20 +488,13 @@ def generate_label_sheet() -> str:
                         width=LABEL_WIDTH,
                         height=LABEL_HEIGHT)
         
-        # draws barcode svg onto page
-        barcode = svg2rlg(barcode_path) # loads barcode file
-        barcode.scale(0.6, 0.6) # scales barcode down to fit
-        barcode.drawOn(canvas,
-                       x=x_label + (LABEL_WIDTH / 2) + (0.25 * inch),
-                       y=y_label)
-        
         # prevents overlap, >= used to catch rare (hopefully impossible) exceptions
         if page_position >= (TOTAL_LABELS - 1):
             canvas.showPage() # moves on to next page
 
     # saves file and opens file to PDF viewer
     canvas.save()
-    os.startfile(output_sheet_name)
+    os.startfile(output_path)
 
     return output_sheet_name
 
@@ -578,7 +560,8 @@ def start_label_generation() -> None:
         os.makedirs(directory)
 
     # generate images from requests list information
-    status.config(text='Generating labels from list.', fg=DEFAULT_COL)
+    status.config(text='Generating labels from list.',
+                  fg=DEFAULT_COL)
     root.update()
     num_images = generate_labels_from_list(template_pdf_path, requests_list)
     if not num_images:
@@ -586,7 +569,8 @@ def start_label_generation() -> None:
         return
 
     # stitches together images into one PDF
-    status.config(text='Stitching together images from image directory.', fg=DEFAULT_COL)
+    status.config(text='Stitching together images from image directory.',
+                  fg=DEFAULT_COL)
     root.update()
     output_sheet_name = generate_label_sheet()
     if not output_sheet_name:
@@ -720,7 +704,8 @@ if __name__ == '__main__':
     # bottom credits
     description = tk.Label(root,
                            text='\nDeveloped by Justin Caringal, ' + \
-                           'Pickler Memorial Library, Truman State University',
+                           'BSCS Class of 2025, Pickler Memorial Library, ' + \
+                           'Truman State University.',
                            justify='left',
                            font=(FONT_TUPLE[0], 8))
     description.grid(sticky='W', row=BOTTOM_ROW, column=0, columnspan=100)
