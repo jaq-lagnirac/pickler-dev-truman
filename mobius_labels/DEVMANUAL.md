@@ -1,7 +1,9 @@
 # Developer Manual - Mobius Label Generator
 
 <div align="center">
-    <img src="images_not_bundled/logo-color-background.png" width="500px" alt="MLG Logo">
+    <img src="images_not_bundled/logo-color-background.png"
+    width="500px"
+    alt="MLG Logo by github@jaq-lagnirac">
 </div>
 
 Welcome to the Development and Maintenance Manual of Mobius Label Generator.
@@ -9,8 +11,8 @@ This document aims to provide a starting point for future developers of this
 project as well as provide a documentation overview of the project as a whole.
 
 If you have any questions, comments, or concerns, plese feel free to reach
-out to the [Justin Caringal](https://github.com/jaq-lagnirac), the lead
-developer at the time of writing, or the current maintainers of this project.
+out to the [Pickler Memorial Library](https://library.truman.edu)
+or the current maintainers of this project.
 
 ## Table of Contents
 
@@ -185,15 +187,12 @@ as the relevant SPEC file in the project repository.
 
 Developed for use and further development on Windows using Python 3.12+.
 
-This tool was commissioned by Stephen Wynn, the Associate Dean of Libraries for
-Technical Services & Systems of
-[Pickler Memorial Library](https://library.truman.edu/) at
-[Truman State University](https://www.truman.edu/). Developed by
-[Justin Caringal](https://jaq-lagnirac.github.io/), BSCS Class of 2025,
-of [Truman State University](https://www.truman.edu/).
+Developed by [Pickler Memorial Library](https://library.truman.edu/),
+[Truman State University](https://www.truman.edu/).
 
 ## Timestamp Details
 
 - **DEVMANUAL.md originally published:** 2024-10-18, Project v2.1.0
-- **DEVMANUAL.md last updated:** 2024-10-21, Project v2.2.0
-- **DEVMANUAL.md version:** v1.1
+- **DEVMANUAL.md last updated:** 2024-10-25, Project v2.2.1
+- **DEVMANUAL.md version:** v1.2
+- **Raw ver. info. (for tracking development):** Z2l0aHViQGphcS1sYWduaXJhYw==

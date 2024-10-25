@@ -1,7 +1,9 @@
 # Mobius Label Generator
 
 <div align="center">
-    <img src="images_not_bundled/logo-color-background.png" width="500px" alt="MLG Logo">
+    <img src="images_not_bundled/logo-color-background.png"
+    width="500px"
+    alt="MLG Logo by github@jaq-lagnirac">
 </div>
 
 **Welcome to Mobius Label Generator!**
@@ -48,17 +50,14 @@ document or in the relevant manual.
 
 ## Credits
 
-This tool was commissioned by Stephen Wynn, the Associate Dean of Libraries for
-Technical Services & Systems of
-[Pickler Memorial Library](https://library.truman.edu/) at
-[Truman State University](https://www.truman.edu/). Developed by
-[Justin Caringal](https://jaq-lagnirac.github.io/), BSCS Class of 2025,
-of [Truman State University](https://www.truman.edu/).
+Developed by [Pickler Memorial Library](https://library.truman.edu/),
+[Truman State University](https://www.truman.edu/).
 
 ## Timestamp Details
 
 - **Project start date:** 2024-09-13
 - **Initial project delivery date:** 2024-10-18
 - **README.md originally published:** 2024-10-09, Project v2.0.0
-- **README.md last updated:** 2024-10-18, Project v2.1.0
-- **README.md version:** v1.4
+- **README.md last updated:** 2024-10-25, Project v2.2.1
+- **README.md version:** v1.5
+- **Raw ver. info. (for tracking development):** Z2l0aHViQGphcS1sYWduaXJhYw==

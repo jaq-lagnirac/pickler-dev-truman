@@ -1,15 +1,17 @@
 # User Manual - Mobius Label Generator
 
 <div align="center">
-    <img src="images_not_bundled/logo-color-background.png" width="500px" alt="MLG Logo">
+    <img src="images_not_bundled/logo-color-background.png"
+    width="500px"
+    alt="MLG Logo by github@jaq-lagnirac">
 </div>
 
 Welcome to the User Manual of Mobius Label Generator. This document aims to
 help guide an end-user in the daily or regular use of this tool.
 
 If you have any questions, comments, or concerns, plese feel free to reach
-out to the [Justin Caringal](https://github.com/jaq-lagnirac), the lead
-developer at the time of writing, or the current maintainers of this project.
+out to the [Pickler Memorial Library](https://library.truman.edu)
+or the current maintainers of this project.
 
 ## Table of Contents
 
@@ -95,8 +97,14 @@ same working directory as the tool. This path can be changed with the relevant
 field. At minimum, the JSON must have the following keys and values:
 - `okapi_url` : The URL to the OKAPI gateway to the FOLIO project,
     will most likely be `https://okapi-mobius.folio.ebsco.com`.
-- `tenant` : The tenant ID for the institution.
-- `username` : The individual user of the institution.
+- `tenant` : The tenant ID for the institution. You can find your FOLIO tenant
+    by going to: `Apps` &rarr; `Settings` &rarr; `Software versions`. Under
+    `Okapi services` find the subheading `Okapi`, then the entry
+    `For tenant...`
+- `username` : The individual user of the institution. It is recommended that
+    you create an account with read-only permissions for using the API. For
+    the purposes of this app, the User account must have at least the
+    permission `Requests: View`.
 - `password` : The password for the associated account.
 
 **Please note:** The generator is case-sensitive&mdash;the keys must be exact.
@@ -113,14 +121,13 @@ denoting no label will be printed there).
 
 ## Temporary Working Sub-Directory
 
-You may see a directory/folder named `.tmp_mobius_labels_jaq/` appear and
-disappear during code execution and label generation. This is intended
-behavior, and is a requirement for successful code execution. This directory
-is the location where the tool conducts its operations in order to prevent
-accessing files outside the scope of the program. You ***must*** have the extra
-storage space in order for successful program execution. Do ***NOT*** interact
-or attempt to delete this directory during runtime execution, as this may lead
-to erroneous behavior.
+You may see a directory/folder appear and disappear during code execution and
+label generation. This is intended behavior, and is a requirement for
+successful code execution. This directory is the location where the tool
+conducts its operations in order to prevent accessing files outside the scope
+of the program. You ***must*** have the extra storage space in order for
+successful program execution. Do ***NOT*** interact or attempt to delete this
+directory during runtime execution, as this may lead to erroneous behavior.
 
 ## Output Label Sheet
 
@@ -137,15 +144,12 @@ output directory manually.
 
 Developed for use and further development on Windows using Python 3.12+.
 
-This tool was commissioned by Stephen Wynn, the Associate Dean of Libraries for
-Technical Services & Systems of
-[Pickler Memorial Library](https://library.truman.edu/) at
-[Truman State University](https://www.truman.edu/). Developed by
-[Justin Caringal](https://jaq-lagnirac.github.io/), BSCS Class of 2025,
-of [Truman State University](https://www.truman.edu/).
+Developed by [Pickler Memorial Library](https://library.truman.edu/),
+[Truman State University](https://www.truman.edu/).
 
 ## Timestamp Details
 
 - **USERMANUAL.md originally published:** 2024-10-09, Project v2.0.0
-- **USERMANUAL.md last updated:** 2024-10-21, Project v2.2.0
-- **USERMANUAL.md version:** v1.4
+- **USERMANUAL.md last updated:** 2024-10-25, Project v2.2.1
+- **USERMANUAL.md version:** v1.5
+- **Raw ver. info. (for tracking development):** Z2l0aHViQGphcS1sYWduaXJhYw==

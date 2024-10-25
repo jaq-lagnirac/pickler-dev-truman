@@ -1,5 +1,6 @@
 # Justin Caringal, Stephen Wynn
-#
+# BSCS 2025, github@jaq-lagnirac
+# 
 # A program to make requests to the FolioClient API on inter-library orders and
 # generate a label sheet PDF in order to facilitate the easy transfer of
 # requested materials between libraries
@@ -27,8 +28,8 @@ from PIL import ImageTk, Image
 
 ### GLOBAL CONSTANTS / VARIABLES ###
 
-REPO_LINK = 'https://github.com/jaq-lagnirac/'
-TEMPDIR = '.tmp_mobius_labels_jaq' # temporary directory to store intermediary generated files
+REPO_LINK = 'https://library.truman.edu'
+TEMPDIR = '.tmp_mobius_labels_by_jaq-lagnirac' # temporary directory to store intermediary generated files
 LABELDIR = os.path.join(TEMPDIR, 'labels')
 OUTPUTDIR = 'MOBIUS_LABEL_OUTPUT_JAQ'
 WORKING_DIRS = [TEMPDIR, LABELDIR]
@@ -63,14 +64,15 @@ def update_warning(entry : tk.Event) -> None:
     
     A function which updates a tkinter Label based off of
     the input to the offset_value Entry.
+
+    Based off of the following StackOverflow forum post:
+    https://stackoverflow.com/a/73126296
     
     Args:
         entry (str): The user-inputted entry, not interacted with
     
     Returns:
         None
-
-    https://stackoverflow.com/a/73126296
     """
 
     user_offset = offset_value.get()
@@ -584,7 +586,7 @@ def start_label_generation() -> None:
     safe_exit(msg=success_status, col=SUCCESS_COL)
     return
 
-
+# Justin Caringal, TSU, BSCS 2025, github@jaq-lagnirac
 # main loop functionality, generates root tkinter window where most of the user interacts
 if __name__ == '__main__':
     BUTTON_COUNT = 3
@@ -700,15 +702,6 @@ if __name__ == '__main__':
                        row=BUTTON_ROW,
                        column=BUTTON_COLUMN_START + 2,
                        padx=(0, X_WIDGET_PADDING))
-
-    # bottom credits
-    description = tk.Label(root,
-                           text='\nDeveloped by Justin Caringal, ' + \
-                           'BSCS Class of 2025, Pickler Memorial Library, ' + \
-                           'Truman State University.',
-                           justify='left',
-                           font=(FONT_TUPLE[0], 8))
-    description.grid(sticky='W', row=BOTTOM_ROW, column=0, columnspan=100)
 
     root.mainloop()
     
