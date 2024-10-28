@@ -702,6 +702,16 @@ if __name__ == '__main__':
                        row=BUTTON_ROW,
                        column=BUTTON_COLUMN_START + 2,
                        padx=(0, X_WIDGET_PADDING))
+    
+    # bottom credits
+    description = tk.Label(root,
+                           text='\nDeveloped by Technical Services ' + \
+                            '& Systems, Pickler Memorial Library, ' + \
+                            'Truman State University, MO, 2024\n' + \
+                            'Raw ver. info.: Z2l0aHViQGphcS1sYWduaXJhYw==',
+                           justify='left',
+                           font=(FONT_TUPLE[0], 7))
+    description.grid(sticky='W', row=BOTTOM_ROW, column=0, columnspan=100)
 
     root.mainloop()
     
