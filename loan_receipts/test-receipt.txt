@@ -2,53 +2,54 @@
              Truman State University              
              Pickler Memorial Library             
                                                   
-             Wed 23 Oct 2024, 09:17PM             
-               8 items checked out.               
+             Wed 30 Oct 2024, 10:44AM             
+               8 items checked out                
+               in the last 15 mins.               
                                                   
 ITEM 1
 TITLE: Cinema sabaya [videorecording] / Green Prod
 CALL #: PN1995.9.F671 C56 2023
 BARCODE: 31514008456116
-DUE DATE: Thu 07 Nov 2024, 05:59AM
+DUE DATE: Wed 06 Nov 2024, 11:59PM
 
 ITEM 2
 TITLE: Oliver Sacks [videorecording] : his own lif
 CALL #: RC339.52.S33 O55 2021
 BARCODE: 31514008306048
-DUE DATE: Thu 07 Nov 2024, 05:59AM
+DUE DATE: Wed 06 Nov 2024, 11:59PM
 
 ITEM 3
 TITLE: The German lesson [videorecording] / Wild B
 CALL #: PN1995.9.F6715 D487 2020
 BARCODE: 31514008401526
-DUE DATE: Thu 07 Nov 2024, 05:59AM
+DUE DATE: Wed 06 Nov 2024, 11:59PM
 
 ITEM 4
 TITLE: Persian lessons [videorecording] / Memento 
 CALL #: PN1995.9.F6715 P457 2023
 BARCODE: 31514008457882
-DUE DATE: Thu 07 Nov 2024, 05:59AM
+DUE DATE: Wed 06 Nov 2024, 11:59PM
 
 ITEM 5
 TITLE: Golden voices [videorecording] / United Kin
 CALL #: PN1995.9.F6717 G65 2022
 BARCODE: 31514008332630
-DUE DATE: Thu 07 Nov 2024, 05:59AM
+DUE DATE: Wed 06 Nov 2024, 11:59PM
 
 ITEM 6
 TITLE: Kubrick by Kubrick [videorecording].
 CALL #: PN1998.3.K83 K823 2023
 BARCODE: 31514008456801
-DUE DATE: Thu 07 Nov 2024, 05:59AM
+DUE DATE: Wed 06 Nov 2024, 11:59PM
 
 ITEM 7
 TITLE: Breaking bread [videorecording] / a Gemini 
 CALL #: TX725.M628 B74 2022
 BARCODE: 31514008332242
-DUE DATE: Thu 07 Nov 2024, 05:59AM
+DUE DATE: Wed 06 Nov 2024, 11:59PM
 
 ITEM 8
 TITLE: Jay myself [videorecording] / a Mind Hive F
 CALL #: TR140.M3375 J39 2019
 BARCODE: 31514008276308
-DUE DATE: Thu 07 Nov 2024, 05:59AM
+DUE DATE: Wed 06 Nov 2024, 11:59PM

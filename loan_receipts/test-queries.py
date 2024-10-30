@@ -117,7 +117,6 @@ from pprint import pprint
 checked_out_items = []
 total_queries = 0
 matched_queries = 0
-top_loan_date = None
 for query in queries:
     # pprint(query)
     # continue
@@ -130,16 +129,10 @@ for query in queries:
 
         # extracts due date, coverts to a more human-readable format
         iso_due_date = datetime.fromisoformat(query['dueDate'])
+        iso_due_date = iso_due_date.astimezone() # defaults to system timezone
         printable_due_date = iso_due_date.strftime('%a %d %b %Y, %I:%M%p')
         # https://docs.python.org/3/library/datetime.html#strftime-strptime-behavior
         # print(f'{query['dueDate']}\t{iso_due_date}\t{printable_due_date}')
-
-        # extracts loan date, coverts to a more human-readable format
-        iso_loan_date = datetime.fromisoformat(query['loanDate'])
-        printable_loan_date = iso_loan_date.strftime('%a %d %b %Y, %I:%M%p')
-        # finds most recent loan date time
-        if not top_loan_date or printable_loan_date > top_loan_date:
-            top_loan_date = printable_loan_date
 
         item = query['item']
         item_dict = {
@@ -151,6 +144,7 @@ for query in queries:
         checked_out_items.append(item_dict)
 
 # pprint(checked_out_items)
+top_loan_date = now.astimezone().strftime('%a %d %b %Y, %I:%M%p')
 
 RECEIPT_TEXT_WIDTH = 50
 num_items = len(checked_out_items)
@@ -160,7 +154,8 @@ Truman State University
 Pickler Memorial Library
 
 {top_loan_date}
-{num_items} item{plural_s()} checked out.
+{num_items} item{plural_s()} checked out
+in the last 15 mins.
 
 '''
 def center_multiline_text(text, width):
@@ -196,3 +191,4 @@ print(receipt_text)
 
 with open('test-receipt.txt', 'w') as file:
     file.write(receipt_text)
+    
