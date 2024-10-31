@@ -88,7 +88,7 @@ def error_msg(msg : str = 'Unknown error occured.') -> None:
     error.mainloop()
 
 
-def update_warning(*entry : tk.Event) -> None:
+def update_validation(*entry : tk.Event) -> None:
     """Updates id_validation_msg based off of input.
     
     A function which updates a tkinter Label based off of
@@ -116,6 +116,30 @@ def update_warning(*entry : tk.Event) -> None:
                                  fg=FAIL_COL)
         enter_button.config(state='disabled')
     root.update()
+    return
+
+
+def update_status(msg : str,
+                  col : str = DEFAULT_COL,
+                  enter_state : str = None) -> None:
+    """Updates the status message on the main root window.
+    
+    A function which handles the status message returned to the user
+    during "main" function execution. Also handles the enabling
+    and disabling of the button, defaulting to leaving the button
+    alone if no input is given.
+    
+    Args:
+        msg (str): The message to be sent to the user
+        col (str): Color hexcode of the text, defaults to
+            DEFAULT_COL (black)
+        enter_state (str): The requested updated state of
+            the enter button, defaults to keeping 
+
+    Returns:
+        None
+    """
+    
     return
 
 
@@ -207,8 +231,7 @@ def login_folioclient() -> folioclient.FolioClient:
         FolioClient: Returns an API object to the FOLIOClient
     """
 
-    # config_name = config_relpath.get()
-    config_name = 'config.json'
+    config_name = config_relpath.get()
 
     # checks for existence of config.json file, notifies user if none available -jaq
     if not os.path.exists(config_name):
@@ -259,12 +282,16 @@ def start_receipt_printing() -> None:
 
     # prevents future inputs
     enter_button.config(state='disabled')
+    status.config(text='you\'ve entered the receipt printing stage of the program!')
     root.update()
     print('you\'ve entered the receipt printing stage of the program!')
     from time import sleep
     sleep(5)
-    print('exiting receipt printing')
+    status.config(text='exiting receipt printing')
     enter_button.config(state='normal')
+    print('exiting receipt printing')
+    root.update()
+
     return
 
 
@@ -332,7 +359,7 @@ if __name__ == '__main__':
                   padx=INPUT_SIDE_PADDING)
     # new error handling with increased response time
     # https://stackoverflow.com/a/51421764    
-    id_string.trace_add('write', update_warning)
+    id_string.trace_add('write', update_validation)
     id_validation_msg = tk.Label(root,
                                  text='',
                                  font=('Courier New', FONT_TUPLE[1]))
@@ -342,7 +369,6 @@ if __name__ == '__main__':
                            columnspan=100,
                            padx=TEXT_SIDE_PADDING,
                            pady=(5, 0))
-    ### NOTE: look into this before future development
 
     # bottom rows
     BOTTOM_ROW = 100 # arbitrarily large number
