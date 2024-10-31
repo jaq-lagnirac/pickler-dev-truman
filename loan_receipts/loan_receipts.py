@@ -88,7 +88,7 @@ def error_msg(msg : str = 'Unknown error occured.') -> None:
     error.mainloop()
 
 
-def update_warning(entry : tk.Event) -> None:
+def update_warning(*entry : tk.Event) -> None:
     """Updates id_validation_msg based off of input.
     
     A function which updates a tkinter Label based off of
@@ -259,8 +259,13 @@ def start_receipt_printing() -> None:
 
     # prevents future inputs
     enter_button.config(state='disabled')
+    root.update()
     print('you\'ve entered the receipt printing stage of the program!')
-
+    from time import sleep
+    sleep(5)
+    print('exiting receipt printing')
+    enter_button.config(state='normal')
+    return
 
 
 # Justin Caringal, TSU, BSCS 2025, github@jaq-lagnirac
@@ -318,17 +323,16 @@ if __name__ == '__main__':
                 row=ID_ROW,
                 column=ID_COLUMN,
                 padx=TEXT_SIDE_PADDING)
-    id_input = tk.Entry(root, width=INPUT_WIDTH)
+    id_string = tk.StringVar()
+    id_input = tk.Entry(root, width=INPUT_WIDTH, textvariable=id_string)
     id_input.grid(sticky='E',
                   row=ID_ROW,
                   column=ID_COLUMN + 1,
                   columnspan=BUTTON_COUNT,
                   padx=INPUT_SIDE_PADDING)
-    validate_id = lambda char : char.isdigit()
-    vcmd = (validate_id, '%S')
-    id_input.config(validate='key', validatecommand=vcmd) # this line needs to be after default value
-    # automatic checking every time offset is inputted
-    id_input.bind('<KeyRelease>', update_warning)
+    # new error handling with increased response time
+    # https://stackoverflow.com/a/51421764    
+    id_string.trace_add('write', update_warning)
     id_validation_msg = tk.Label(root,
                                  text='',
                                  font=('Courier New', FONT_TUPLE[1]))
@@ -339,7 +343,6 @@ if __name__ == '__main__':
                            padx=TEXT_SIDE_PADDING,
                            pady=(5, 0))
     ### NOTE: look into this before future development
-    ### https://stackoverflow.com/questions/51421319/why-one-step-delay-when-binding-with-events-in-tkinter-and-how-to-solve-this
 
     # bottom rows
     BOTTOM_ROW = 100 # arbitrarily large number
