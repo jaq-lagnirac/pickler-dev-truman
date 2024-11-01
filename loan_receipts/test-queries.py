@@ -137,13 +137,19 @@ for query in queries:
         item = query['item']
         item_dict = {
             'title' : item['title'],
-            'callNumber' : item['callNumber'],
             'barcode' : item['barcode'],
             'dueDate' : printable_due_date,
         }
+        try:
+            item_dict['callNumber'] = item['callNumber']
+        except Exception:
+            print(item['title'])
+            item_dict['callNumber'] = 'n/a'
         checked_out_items.append(item_dict)
 
 # pprint(checked_out_items)
+# defaults conversion to system timezone
+#https://docs.python.org/3/library/datetime.html#datetime.datetime.astimezone
 top_loan_date = now.astimezone().strftime('%a %d %b %Y, %I:%M%p')
 
 RECEIPT_TEXT_WIDTH = 50
