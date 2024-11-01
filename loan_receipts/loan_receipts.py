@@ -15,6 +15,7 @@ import json
 import tkinter as tk
 import webbrowser as wb
 from datetime import datetime, timezone, timedelta
+from typing import Generator
 import folioclient
 from PIL import ImageTk, Image
 
@@ -108,18 +109,19 @@ def update_validation(*entry : tk.Event) -> None:
     patron_id = id_input.get()
 
     if patron_id.isdigit():
-        id_validation_msg.config(text='Valid Patron ID.',
-                                 fg=SUCCESS_COL)
+        status.config(text='Valid Patron ID.',
+                      fg=SUCCESS_COL)
         enter_button.config(state='normal')
     else:
-        id_validation_msg.config(text='Patron ID must be a numerical value.',
-                                 fg=FAIL_COL)
+        status.config(text='Patron ID must be a numerical value.',
+                      fg=FAIL_COL)
         enter_button.config(state='disabled')
     root.update()
     return
 
 
-def update_status(msg : str,
+def update_status(*, # requires all arguments to be keyword-only arguments
+                  msg : str = '',
                   col : str = DEFAULT_COL,
                   enter_state : str = None) -> None:
     """Updates the status message on the main root window.
@@ -139,7 +141,17 @@ def update_status(msg : str,
     Returns:
         None
     """
+
+    # changes status message
+    if msg:
+        status.config(text=msg, fg=col)
     
+    # changes enter button state if requested,
+    # otherwise keep it the same
+    if enter_state:
+        enter_button.config(state=enter_state)
+
+    root.update()
     return
 
 
@@ -235,7 +247,10 @@ def login_folioclient() -> folioclient.FolioClient:
 
     # checks for existence of config.json file, notifies user if none available -jaq
     if not os.path.exists(config_name):
-        error_msg(f'\"{config_name}\" not detected.')
+        status_msg = f'\"{config_name}\" not detected.'
+        update_status(msg=status_msg,
+                      col=FAIL_COL)
+        error_msg(status_msg)
 
     # Setup FOLIO variables
     login = None # scope resolution
@@ -244,6 +259,8 @@ def login_folioclient() -> folioclient.FolioClient:
 
     # checks to ensure config file is set up correctly -jaq
     if not REQUIRED_CONFIG_KEYS.issubset(set(login.keys())): # if required keys not in login
+        update_status(msg=f'\"{config_name}\" improperly set up.',
+                      col=FAIL_COL)
         error_msg(f'\"{config_name}\" improperly set up.\nPlease check keys.' + \
                   f'\nDetected keys: {set(login.keys())}' + \
                   f'\nRequired keys: {REQUIRED_CONFIG_KEYS}')
@@ -259,9 +276,59 @@ def login_folioclient() -> folioclient.FolioClient:
     try:
         f = folioclient.FolioClient(okapi_url, tenant, username, password)
     except Exception as e:
-        error_msg(f'Cannot connect to FolioClient.\n{e}')
+        status_msg = f'Cannot connect to FolioClient. Try again.'
+        update_status(msg=status_msg,
+                      col=FAIL_COL,
+                      enter_state='normal')
+        error_msg(f'{status_msg}\n{e}')
 
     return f
+
+def extract_queries(queries : Generator[str, str, None],
+                    patron_id : str) -> list:
+    """Extracts queries from FOLIO object.
+    
+    A function which iterates through a FOLIO object and compares
+    it against the patron ID inputted by the user. If the borrower
+    barcode matches the patron ID, add an extracted info dictionary
+    to a list to be returned by the function.
+    
+    Args:
+        queries (Generator): A non-iterable object returned by FOLIO
+        patron_id (str): The inputted patron ID to be compared against
+    
+    Returns:
+        list: Returns a list of dictionaries containing item information
+    """
+
+    checked_out_items = [] # list of dicts to be returned
+
+    for query in queries:
+        # extracts patron ID associated with query
+        barcode_borrower = query['borrower']['barcode']
+
+        # if barcode matches inputted patron ID, extract info from query
+        if barcode_borrower == patron_id:
+            # extracts due date, coverts to a more human-readable format
+            # https://docs.python.org/3/library/datetime.html#strftime-strptime-behavior
+            iso_due_date = datetime.fromisoformat(query['dueDate'])
+            iso_due_date = iso_due_date.astimezone() # defaults to system timezone
+            printable_due_date = iso_due_date.strftime('%a %d %b %Y, %I:%M%p')
+
+            # extracting and bundling the needed item information
+            item = query['item']
+            item_info = {
+                'title' : item['title'],
+                'barcode' : item['barcode'],
+                'dueDate' : printable_due_date,
+            }
+            try:
+                item_info['callNumber'] = item['callNumber']
+            except KeyError:
+                item_info['callNumber'] = 'n/a'
+            checked_out_items.append(item_info)
+
+    return checked_out_items
 
 
 def start_receipt_printing() -> None:
@@ -281,17 +348,68 @@ def start_receipt_printing() -> None:
     """
 
     # prevents future inputs
-    enter_button.config(state='disabled')
-    status.config(text='you\'ve entered the receipt printing stage of the program!')
-    root.update()
-    print('you\'ve entered the receipt printing stage of the program!')
-    from time import sleep
-    sleep(5)
-    status.config(text='exiting receipt printing')
-    enter_button.config(state='normal')
-    print('exiting receipt printing')
-    root.update()
+    update_status(msg='Beginning receipt printing. Logging into FOLIO.',
+                  enter_state='disabled')
+    
+    # logs into folioclient
+    f = login_folioclient()
+    if not f:
+        # safety net to enable enter button again,
+        # more detailed status messages executed during
+        # login_folioclient() execution
+        update_status(enter_state='normal')
+        return
+    
+    # generates 15-min timeframe for search and comparison
+    time_now = datetime.now(timezone.utc) # gets current UTC time
+    search_window = timedelta(days=7, minutes=15) # creates 15-min window
+    timeframe_start = time_now - search_window # calculates start of search
+    iso_timeframe = timeframe_start.isoformat() # converts to ISO 8601
 
+    # searches for all checkouts in the last 15 mins
+    # NOTE: There is apparently a CQL way to query the borrower.barcode
+    # specifically, however no one here (including myself) knows how to
+    # conduct a query on a nested object in CQL. If someone knows how to
+    # do that they definitely should, and can remove the (now unnecessary)
+    # if statement in extract_queries(). Until then, this program will be
+    # slightly more inefficient by a few milliseconds (aw schucks, lost time).
+    # We tried 'borrower.barcode == \"{patron_id}\"', but that didn't work for
+    # some reason (probably my own glaring lack of knowledge of CQL). -jaq
+    # https://dev.folio.org/reference/api/endpoints/
+    update_status(msg='Querying FOLIO API.')
+    search_query = f'loanDate > \"{iso_timeframe}\" and action == \"checkedout\"'
+    queries = f.folio_get_all(path='/circulation/loans',
+                              key='loans',
+                              query=search_query)
+
+    # trims patron ID to acceptable length
+    # NOTE: patron IDs for Truman are Banner IDs, the values obtained
+    # from card swipes are "BannerID + the number of the card issued",
+    # i.e. if patron number 123456789 has had a card issued 3 times, a
+    # possible number extracted from their card would be "12345678903".
+    # Therefore, we can (hopefully) assume that no matter what input
+    # length is, we can trim the patron id to a length == ID_LENGTH
+    PATRON_ID_LENGTH = 9
+    patron_id = id_input.get()
+    patron_id = patron_id[ : PATRON_ID_LENGTH] # gets first 9 digits of input
+
+    # iterates through queries to find matches to patron ID
+    update_status(msg='Extracting item information.')
+    checked_out_items = extract_queries(queries, patron_id)
+    if not checked_out_items:
+        update_status(msg='No items checked out within ' \
+                      f'the past 15 minutes by {patron_id}.',
+                      col=SUCCESS_COL,
+                      enter_state='normal')
+        return
+    update_status(msg=f'{checked_out_items} items detected.')
+
+    ### PRINT RECEIPT HERE ###
+
+    # wrap-up statements
+    update_status(msg=f'Printed receipt for patron {patron_id}!',
+                  col=SUCCESS_COL,
+                  enter_state='normal')
     return
 
 
@@ -360,27 +478,20 @@ if __name__ == '__main__':
     # new error handling with increased response time
     # https://stackoverflow.com/a/51421764    
     id_string.trace_add('write', update_validation)
-    id_validation_msg = tk.Label(root,
-                                 text='',
-                                 font=('Courier New', FONT_TUPLE[1]))
-    id_validation_msg.grid(sticky='W',
-                           row=ID_ROW + 1,
-                           column=ID_COLUMN,
-                           columnspan=100,
-                           padx=TEXT_SIDE_PADDING,
-                           pady=(5, 0))
 
     # bottom rows
     BOTTOM_ROW = 100 # arbitrarily large number
     BUTTON_ROW = BOTTOM_ROW - 10
     STATUS_ROW = BUTTON_ROW - 1
     BUTTON_COLUMN_START = IMAGE_COLUMN + 1
-    status = tk.Label(root, text='', font=('Courier New', FONT_TUPLE[1]))
+    STATUS_FONT = ('Courier New', 11)
+    status = tk.Label(root, text='', font=STATUS_FONT)
     status.grid(sticky='W',
                 row=STATUS_ROW,
                 column=IMAGE_COLUMN,
                 columnspan=100,
-                padx=TEXT_SIDE_PADDING)
+                padx=TEXT_SIDE_PADDING,
+                pady=(12, 12))
     # NOTE: sticky='NESW' used to fill box to fit column and row
     enter_button = tk.Button(root, text='Enter', command=start_receipt_printing)
     enter_button.grid(sticky='NESW',
