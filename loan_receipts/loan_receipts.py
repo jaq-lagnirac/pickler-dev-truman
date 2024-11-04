@@ -83,9 +83,12 @@ def error_msg(msg : str = 'Unknown error occured.') -> None:
     # displays error window
     error = tk.Toplevel()
     error.title('Error')
-    tk.Label(error, text = msg).grid(row = 0, column = 1)
-    button = tk.Button(error, text = 'Cancel', width=25, command = error.destroy)
-    button.grid(row = 1, column = 1)
+    tk.Label(error, text=msg, justify='left').grid(row = 0, column = 1)
+    button = tk.Button(error,
+                       text='Cancel',
+                       width=25,
+                       command=error.destroy)
+    button.grid(row=1, column=1)
     error.mainloop()
 
 
@@ -284,6 +287,7 @@ def login_folioclient() -> folioclient.FolioClient:
 
     return f
 
+
 def extract_queries(queries : Generator[str, str, None],
                     patron_id : str) -> list:
     """Extracts queries from FOLIO object.
@@ -322,6 +326,9 @@ def extract_queries(queries : Generator[str, str, None],
                 'barcode' : item['barcode'],
                 'dueDate' : printable_due_date,
             }
+            # some items (for some reason) do not have a call number
+            # replaces blank key with filler to prevent current
+            # and future KeyError(s)
             try:
                 item_info['callNumber'] = item['callNumber']
             except KeyError:
@@ -331,7 +338,79 @@ def extract_queries(queries : Generator[str, str, None],
     return checked_out_items
 
 
-def start_receipt_printing() -> None:
+def center_multiline_text(text : str, width : int) -> str:
+    """Breaks down and centers multiline text
+
+    A function which takes a multiline text input and centers
+    it to a specified width using the str.center() method.
+
+    Args:
+        text (str): The text to be centered, usually enclosed
+            in triple quotes
+        width (int): The width to be centered on
+    
+    Returns:
+        str: Returns the newly centered multiline string
+    """
+    lines = text.splitlines() # splits text by \n into a list of lines
+    centered_lines = [line.center(width) for line in lines] # centers lines
+    return '\n'.join(centered_lines) # rejoins lines into a single output str
+
+
+def format_full_receipt(checked_out_items : list,
+                       time_now : datetime) -> str:
+    """Forwards operations to printer.
+    
+    A function which formats the extracted checkout items from
+    FOLIO to the printer interface, an ESC/POS-style printer.
+
+    Args:
+        checked_out_items (list): A list of dictionaries of the
+            extracted information
+        time_now (datetime): The datetime object used to
+            generate the start of the query window
+    
+    Returns:
+        str: The full string to be printed
+    """
+
+    RECEIPT_TEXT_WIDTH = 50
+
+    # defaults conversion to system timezone
+    #https://docs.python.org/3/library/datetime.html#datetime.datetime.astimezone
+    top_loan_date = time_now.astimezone().strftime('%a %d %b %Y, %I:%M%p')
+
+    # generates receipt header
+    num_items = len(checked_out_items)
+    plural_s = lambda : 's' if num_items != 1 else ''
+    receipt_header = f'''
+Truman State University
+Pickler Memorial Library
+
+{top_loan_date}
+{num_items} item{plural_s()} checked out
+in the last 15 mins.
+
+    '''
+    centered_header = center_multiline_text(receipt_header, RECEIPT_TEXT_WIDTH)
+
+    # generates list of items to be printed out
+    item_text = ''
+    for index, item in enumerate(checked_out_items):
+        item_text += f'''
+ITEM {index + 1}
+TITLE: {item['title'][ : RECEIPT_TEXT_WIDTH - 7]}
+CALL #: {item['callNumber']}
+BARCODE: {item['barcode']}
+DUE DATE: {item['dueDate']}
+    ''' # 'TITLE: ' is 7 characters
+
+    # concatenating header and formatting item list to be returned
+    full_receipt_text = centered_header + item_text
+    return full_receipt_text
+
+
+def start_printing_process() -> None:
     """The response to clicking the Enter button.
     
     A function which validates the user inputs,
@@ -362,7 +441,7 @@ def start_receipt_printing() -> None:
     
     # generates 15-min timeframe for search and comparison
     time_now = datetime.now(timezone.utc) # gets current UTC time
-    search_window = timedelta(days=7, minutes=15) # creates 15-min window
+    search_window = timedelta(minutes=15) # creates 15-min window
     timeframe_start = time_now - search_window # calculates start of search
     iso_timeframe = timeframe_start.isoformat() # converts to ISO 8601
 
@@ -402,9 +481,18 @@ def start_receipt_printing() -> None:
                       col=SUCCESS_COL,
                       enter_state='normal')
         return
-    update_status(msg=f'{checked_out_items} items detected.')
 
-    ### PRINT RECEIPT HERE ###
+    # generates receipt string
+    update_status(msg=f'{checked_out_items} items detected. ' \
+                      'Formatting print job.')
+    receipt_text = format_full_receipt(checked_out_items, time_now)
+
+    ### TEST PRINTING ###
+    # prints formatted receipt text to standard output
+    print(receipt_text)
+    # prints to external file for posterity
+    with open('full-pipeline-test-receipt.txt', 'w') as output:
+        output.write(receipt_text)
 
     # wrap-up statements
     update_status(msg=f'Printed receipt for patron {patron_id}!',
@@ -493,7 +581,7 @@ if __name__ == '__main__':
                 padx=TEXT_SIDE_PADDING,
                 pady=(12, 12))
     # NOTE: sticky='NESW' used to fill box to fit column and row
-    enter_button = tk.Button(root, text='Enter', command=start_receipt_printing)
+    enter_button = tk.Button(root, text='Enter', command=start_printing_process)
     enter_button.grid(sticky='NESW',
                       row=BUTTON_ROW,
                       column=BUTTON_COLUMN_START)
