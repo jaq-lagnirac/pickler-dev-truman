@@ -287,6 +287,54 @@ def login_folioclient() -> folioclient.FolioClient:
 
     return f
 
+def extract_single_query(query : dict,
+                         patron_id : str) -> dict:
+    """Extracts information from a single query.
+    
+    A function which compares the borrower barcode against the patron
+    ID and outputs a dictionary depending on if it's a match.
+    
+    Args:
+        query (dict): The query to be searched against
+        patron_id (str): The inputted patron ID to be compared against
+    
+    Returns:
+        dict: Returns a dictionary of the extracted information if
+            it's a good match, otherwise returns an empty dictionary
+    """
+
+    # extracts patron ID associated with query
+    barcode_borrower = query['borrower']['barcode']
+
+    if barcode_borrower != patron_id:
+        return {} # returns an empty dictionary on a bad match
+    
+    # otherwise, if barcode matches inputted
+    # patron ID, extract info from query
+    
+    # extracts due date, coverts to a more human-readable format
+    # https://docs.python.org/3/library/datetime.html#strftime-strptime-behavior
+    iso_due_date = datetime.fromisoformat(query['dueDate'])
+    iso_due_date = iso_due_date.astimezone() # defaults to system timezone
+    printable_due_date = iso_due_date.strftime('%a %d %b %Y, %I:%M%p')
+
+    # extracting and bundling the needed item information
+    item = query['item']
+    item_info = {
+        'title' : item['title'],
+        'barcode' : item['barcode'],
+        'dueDate' : printable_due_date,
+    }
+    # some items (for some reason) do not have a call number
+    # replaces blank key with filler to prevent current
+    # and future KeyError(s)
+    try:
+        item_info['callNumber'] = item['callNumber']
+    except KeyError:
+        item_info['callNumber'] = 'n/a'
+    
+    return item_info
+
 
 def extract_queries(queries : Generator[str, str, None],
                     patron_id : str) -> list:
@@ -306,33 +354,10 @@ def extract_queries(queries : Generator[str, str, None],
     """
 
     checked_out_items = [] # list of dicts to be returned
-
     for query in queries:
-        # extracts patron ID associated with query
-        barcode_borrower = query['borrower']['barcode']
-
-        # if barcode matches inputted patron ID, extract info from query
-        if barcode_borrower == patron_id:
-            # extracts due date, coverts to a more human-readable format
-            # https://docs.python.org/3/library/datetime.html#strftime-strptime-behavior
-            iso_due_date = datetime.fromisoformat(query['dueDate'])
-            iso_due_date = iso_due_date.astimezone() # defaults to system timezone
-            printable_due_date = iso_due_date.strftime('%a %d %b %Y, %I:%M%p')
-
-            # extracting and bundling the needed item information
-            item = query['item']
-            item_info = {
-                'title' : item['title'],
-                'barcode' : item['barcode'],
-                'dueDate' : printable_due_date,
-            }
-            # some items (for some reason) do not have a call number
-            # replaces blank key with filler to prevent current
-            # and future KeyError(s)
-            try:
-                item_info['callNumber'] = item['callNumber']
-            except KeyError:
-                item_info['callNumber'] = 'n/a'
+        item_info = extract_single_query(query, patron_id)
+        
+        if item_info: # if not an empty info dictionary
             checked_out_items.append(item_info)
 
     return checked_out_items
@@ -483,7 +508,7 @@ def start_printing_process() -> None:
         return
 
     # generates receipt string
-    update_status(msg=f'{checked_out_items} items detected. ' \
+    update_status(msg=f'{len(checked_out_items)} items detected. ' \
                       'Formatting print job.')
     receipt_text = format_full_receipt(checked_out_items, time_now)
 
