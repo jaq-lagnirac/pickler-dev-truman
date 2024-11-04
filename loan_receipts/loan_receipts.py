@@ -14,7 +14,9 @@ import sys
 import json
 import tkinter as tk
 import webbrowser as wb
+import multiprocessing
 from datetime import datetime, timezone, timedelta
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Generator
 import folioclient
 from PIL import ImageTk, Image
@@ -287,6 +289,59 @@ def login_folioclient() -> folioclient.FolioClient:
 
     return f
 
+def extract_single_query(query : dict,
+                         patron_id : str,
+                         index) -> tuple:
+    """Extracts information from a single query.
+    
+    A function which compares the borrower barcode against the patron
+    ID and outputs a dictionary depending on if it's a match.
+
+    Used in a ThreadPoolExecutor
+    
+    Args:
+        query (dict): The query to be searched against
+        patron_id (str): The inputted patron ID to be compared against
+        index (int) : Number denoting the executor submission order,
+            to be sorted on later
+    
+    Returns:
+        tuple: Returns a dictionary of the extracted information if
+            it's a good match, otherwise returns an empty dictionary
+    """
+
+    # extracts patron ID associated with query
+    barcode_borrower = query['borrower']['barcode']
+
+    if barcode_borrower != patron_id:
+        return () # returns an empty tuple on a bad match
+    
+    # otherwise, if barcode matches inputted
+    # patron ID, extract info from query
+    
+    # extracts due date, coverts to a more human-readable format
+    # https://docs.python.org/3/library/datetime.html#strftime-strptime-behavior
+    iso_due_date = datetime.fromisoformat(query['dueDate'])
+    iso_due_date = iso_due_date.astimezone() # defaults to system timezone
+    printable_due_date = iso_due_date.strftime('%a %d %b %Y, %I:%M%p')
+
+    # extracting and bundling the needed item information
+    item = query['item']
+    item_info = {
+        'title' : item['title'],
+        'barcode' : item['barcode'],
+        'dueDate' : printable_due_date,
+    }
+    # some items (for some reason) do not have a call number
+    # replaces blank key with filler to prevent current
+    # and future KeyError(s)
+    try:
+        item_info['callNumber'] = item['callNumber']
+    except KeyError:
+        item_info['callNumber'] = 'n/a'
+    
+    return (index, item_info)
+
 
 def extract_queries(queries : Generator[str, str, None],
                     patron_id : str) -> list:
@@ -305,37 +360,34 @@ def extract_queries(queries : Generator[str, str, None],
         list: Returns a list of dictionaries containing item information
     """
 
+    # NOTE: multithreading most like solves a problem that no one
+    # will have, that being the fact that the search space is so
+    # small that (15 minutes) that at that point multithreading
+    # on a search space of 10 items probably isn't worth it
+    # However, on the off-chance that a large contingent of people
+    # checked out books, it may be beneficial. I'll most likely commit
+    # this code to the branch so I have it just in case but I'll most
+    # likely remove it at some point down the line
     checked_out_items = [] # list of dicts to be returned
+    processes = [] # list of processes that the executor will submit
+    with ThreadPoolExecutor(max_workers=multiprocessing.cpu_count()) as executor:
+        # submits queries as tasks to the executor
+        for index, query in enumerate(queries):
+            processes.append(executor.submit(extract_single_query,
+                                             query,
+                                             patron_id,
+                                             index))
+        # adds completed tasks to a list
+        for task in as_completed(processes):
+            # result in the form (number, dictionary)
+            result = task.result()
+            if result: # if not an empty info dictionary
+                checked_out_items.append(result)
 
-    for query in queries:
-        # extracts patron ID associated with query
-        barcode_borrower = query['borrower']['barcode']
-
-        # if barcode matches inputted patron ID, extract info from query
-        if barcode_borrower == patron_id:
-            # extracts due date, coverts to a more human-readable format
-            # https://docs.python.org/3/library/datetime.html#strftime-strptime-behavior
-            iso_due_date = datetime.fromisoformat(query['dueDate'])
-            iso_due_date = iso_due_date.astimezone() # defaults to system timezone
-            printable_due_date = iso_due_date.strftime('%a %d %b %Y, %I:%M%p')
-
-            # extracting and bundling the needed item information
-            item = query['item']
-            item_info = {
-                'title' : item['title'],
-                'barcode' : item['barcode'],
-                'dueDate' : printable_due_date,
-            }
-            # some items (for some reason) do not have a call number
-            # replaces blank key with filler to prevent current
-            # and future KeyError(s)
-            try:
-                item_info['callNumber'] = item['callNumber']
-            except KeyError:
-                item_info['callNumber'] = 'n/a'
-            checked_out_items.append(item_info)
-
-    return checked_out_items
+    # turns list of index-query pairs into key-value pairs,
+    # sorts based off indices/keys, strips out keys so values
+    # remain, converts back into list that will be returned
+    return list(dict(sorted(checked_out_items)).values())
 
 
 def center_multiline_text(text : str, width : int) -> str:
@@ -441,7 +493,7 @@ def start_printing_process() -> None:
     
     # generates 15-min timeframe for search and comparison
     time_now = datetime.now(timezone.utc) # gets current UTC time
-    search_window = timedelta(minutes=15) # creates 15-min window
+    search_window = timedelta(days=30, minutes=15) # creates 15-min window
     timeframe_start = time_now - search_window # calculates start of search
     iso_timeframe = timeframe_start.isoformat() # converts to ISO 8601
 
@@ -483,7 +535,7 @@ def start_printing_process() -> None:
         return
 
     # generates receipt string
-    update_status(msg=f'{checked_out_items} items detected. ' \
+    update_status(msg=f'{len(checked_out_items)} items detected. ' \
                       'Formatting print job.')
     receipt_text = format_full_receipt(checked_out_items, time_now)
 
@@ -491,7 +543,7 @@ def start_printing_process() -> None:
     # prints formatted receipt text to standard output
     print(receipt_text)
     # prints to external file for posterity
-    with open('full-pipeline-test-receipt.txt', 'w') as output:
+    with open('multithread-test-receipt.txt', 'w') as output:
         output.write(receipt_text)
 
     # wrap-up statements
