@@ -17,6 +17,7 @@ import webbrowser as wb
 from datetime import datetime, timezone, timedelta
 from typing import Generator
 import folioclient
+import win32print
 from PIL import ImageTk, Image
 
 ### GLOBAL CONSTANTS / VARIABLES ###
@@ -158,6 +159,99 @@ def update_status(*, # requires all arguments to be keyword-only arguments
     return
 
 
+def find_printers() -> str:
+    """Finds a list of printers.
+    
+    A function which uses the win32print to find a list of
+    local printers to connect to and print receipts from.
+    
+    See DEFAULT_PRINTER_NAME under the main loop for the
+    default name.
+    
+    Args:
+        None
+    
+    Returns:
+        str: Returns a formatted string of printer names
+            and information from EnumPrinters.
+    """
+
+    # finds list of local printers
+    printers = win32print.EnumPrinters(win32print.PRINTER_ENUM_LOCAL,
+                                       None,
+                                       2)
+    
+    printer_info_heading = f'{'PRINTER NAME':<45}{'PORT NAME':<30}\n'
+    printer_text = printer_info_heading + ('-' * 75) + '\n'
+    for printer in printers:
+        printer_name = printer['pPrinterName']
+        printer_port = printer['pPortName']
+        printer_text += f'{printer_name:<45}{printer_port:<30}\n'
+
+    return printer_text
+
+
+def find_printers_window() -> None:
+    """Shows user list of local printers.
+
+    Shows a list of possible printers that may be used.
+    Printers found through find_printers() function which
+    utilizes win32print EnumPrinters.
+    
+    Args:
+        None
+    
+    Returns:
+        None
+    """
+
+    # initializes edge alignment for textbox and cancel button
+    PRINTER_X_PADDING = 20
+
+    # initializes start-up
+    printers_window = tk.Toplevel()
+    printers_window.resizable(False, False)
+    printers_window.title('Printers Available')
+
+    # adds logo image
+    INFO_IMAGE_MULTIPLIER = 1
+    printer_image = Image.open(resource_path(LOGO_PATH)) # opens image
+    printer_image = image.resize(size=[int(INFO_IMAGE_MULTIPLIER * length) \
+                                    for length in image.size])
+    printer_logo = ImageTk.PhotoImage(printer_image) # converts image to format usable by Tkinter
+    tk.Label(printers_window, image=printer_logo).grid(row=0,
+                                                       column=0,
+                                                       columnspan=3)
+
+    # creates text widget
+    printers_textbox = tk.Text(printers_window,
+                           wrap='word',
+                           font=('Courier New', FONT_TUPLE[1]),
+                           height=10)
+    printers_textbox.grid(row=1,
+                          column=0,
+                          columnspan=3,
+                          padx=(PRINTER_X_PADDING, PRINTER_X_PADDING))
+    
+    # adds text to text widget
+    printers_txt = find_printers()
+    printers_textbox.insert('end', printers_txt) # needs to be before text disable
+    printers_textbox.config(state='disabled') # disables editing of help text
+    
+    # adds button to close help window
+    PRINTER_Y_PADDING_TUPLE = (10, 20)
+    cancel_info_button = tk.Button(printers_window,
+                                   text='Cancel',
+                                   command=printers_window.destroy)
+    cancel_info_button.grid(row=2,
+                            column=2,
+                            sticky='NESW',
+                            padx=(0, PRINTER_X_PADDING),
+                            pady=PRINTER_Y_PADDING_TUPLE)
+    
+    printers_window.mainloop()
+
+
 def open_info_help() -> None:
     """Opens a special info/help window.
     
@@ -171,7 +265,7 @@ def open_info_help() -> None:
         None
     """
 
-    # initializes edge alignment for text box and cancel button
+    # initializes edge alignment for textbox and cancel button
     INFO_X_PADDING = 20
 
     # initializes start-up
@@ -182,9 +276,12 @@ def open_info_help() -> None:
     # adds logo image
     INFO_IMAGE_MULTIPLIER = 1
     info_image = Image.open(resource_path(LOGO_PATH)) # opens image
-    info_image = image.resize(size=[int(INFO_IMAGE_MULTIPLIER * length) for length in image.size])
+    info_image = image.resize(size=[int(INFO_IMAGE_MULTIPLIER * length) \
+                                    for length in image.size])
     info_logo = ImageTk.PhotoImage(info_image) # converts image to format usable by Tkinter
-    tk.Label(info_window, image=info_logo).grid(row=0, column=0, columnspan=3)
+    tk.Label(info_window, image=info_logo).grid(row=0,
+                                                column=0,
+                                                columnspan=3)
 
     # creates text widget
     info_textbox = tk.Text(info_window,
@@ -399,7 +496,7 @@ def format_full_receipt(checked_out_items : list,
         str: The full string to be printed
     """
 
-    RECEIPT_TEXT_WIDTH = 50
+    RECEIPT_TEXT_WIDTH = 42
 
     # defaults conversion to system timezone
     #https://docs.python.org/3/library/datetime.html#datetime.datetime.astimezone
@@ -428,7 +525,7 @@ TITLE: {item['title'][ : RECEIPT_TEXT_WIDTH - 7]}
 CALL #: {item['callNumber']}
 BARCODE: {item['barcode']}
 DUE DATE: {item['dueDate']}
-    ''' # 'TITLE: ' is 7 characters
+    ''' # 'TITLE: ' is 7 characters 
 
     # concatenating header and formatting item list to be returned
     full_receipt_text = centered_header + item_text
@@ -516,7 +613,7 @@ def start_printing_process() -> None:
     # prints formatted receipt text to standard output
     print(receipt_text)
     # prints to external file for posterity
-    with open('full-pipeline-test-receipt.txt', 'w') as output:
+    with open('full-receipt.txt', 'w') as output:
         output.write(receipt_text)
 
     # wrap-up statements
@@ -533,6 +630,7 @@ if __name__ == '__main__':
     BUTTON_COUNT = 3
     INPUT_WIDTH = 60
     DEFAULT_CONFIG_NAME = os.path.join(os.getcwd(), 'config.json')
+    DEFAULT_PRINTER_NAME = 'Star SP700 TearBar (SP712)'
     X_WIDGET_PADDING = 20
     TEXT_SIDE_PADDING = (X_WIDGET_PADDING, 0)
     INPUT_SIDE_PADDING = (0, X_WIDGET_PADDING)
@@ -546,7 +644,8 @@ if __name__ == '__main__':
     IMAGE_COLUMN = 0
     IMAGE_MULTIPLIER = 0.1
     image = Image.open(resource_path(LOGO_PATH)) # opens image
-    image = image.resize(size=[int(IMAGE_MULTIPLIER * length) for length in image.size])
+    image = image.resize(size=[int(IMAGE_MULTIPLIER * length) \
+                               for length in image.size])
     logo = ImageTk.PhotoImage(image) # converts image to format usable by Tkinter
     tk.Label(root, image=logo).grid(row=IMAGE_ROW,
                                     column=IMAGE_COLUMN,
@@ -564,15 +663,39 @@ if __name__ == '__main__':
                     column=CONFIG_COLUMN,
                     padx=TEXT_SIDE_PADDING)
     config_relpath = tk.Entry(root, width=INPUT_WIDTH)
-    config_relpath.grid(sticky='E',
+    config_relpath.grid(sticky='WE',
                         row=CONFIG_ROW,
                         column=CONFIG_COLUMN + 1,
                         columnspan=BUTTON_COUNT,
                         padx=INPUT_SIDE_PADDING)
     config_relpath.insert(0, DEFAULT_CONFIG_NAME) # default value
 
+    # requests name of printer
+    PRINTER_ROW = CONFIG_ROW + 1
+    PRINTER_COLUMN = IMAGE_COLUMN
+    printer_txt = tk.Label(root,
+                           text='Printer name:\t',
+                           font=FONT_TUPLE)
+    printer_txt.grid(sticky='W',
+                     row=PRINTER_ROW,
+                     column=PRINTER_COLUMN,
+                     padx=TEXT_SIDE_PADDING)
+    printer_name = tk.Entry(root, width=INPUT_WIDTH)
+    printer_name.grid(sticky='WE',
+                      row=PRINTER_ROW,
+                      column=PRINTER_COLUMN + 1,
+                      columnspan=BUTTON_COUNT - 1)
+    printer_name.insert(0, DEFAULT_PRINTER_NAME) # default value
+    find_printers_button = tk.Button(root,
+                                    text='Find printers',
+                                    command=find_printers_window)
+    find_printers_button.grid(sticky='NESW',
+                              row=PRINTER_ROW,
+                              column=PRINTER_COLUMN + BUTTON_COUNT,
+                              padx=INPUT_SIDE_PADDING)
+
     # requests patron ID card information
-    ID_ROW = CONFIG_ROW + 1
+    ID_ROW = PRINTER_ROW + 1
     ID_COLUMN = IMAGE_COLUMN
     id_txt = tk.Label(root,
                       text='Patron ID:\t',
@@ -582,8 +705,10 @@ if __name__ == '__main__':
                 column=ID_COLUMN,
                 padx=TEXT_SIDE_PADDING)
     id_string = tk.StringVar()
-    id_input = tk.Entry(root, width=INPUT_WIDTH, textvariable=id_string)
-    id_input.grid(sticky='E',
+    id_input = tk.Entry(root,
+                        width=INPUT_WIDTH,
+                        textvariable=id_string)
+    id_input.grid(sticky='WE',
                   row=ID_ROW,
                   column=ID_COLUMN + 1,
                   columnspan=BUTTON_COUNT,
@@ -606,16 +731,22 @@ if __name__ == '__main__':
                 padx=TEXT_SIDE_PADDING,
                 pady=(12, 12))
     # NOTE: sticky='NESW' used to fill box to fit column and row
-    enter_button = tk.Button(root, text='Enter', command=start_printing_process)
+    enter_button = tk.Button(root,
+                             text='Enter',
+                             command=start_printing_process)
     enter_button.grid(sticky='NESW',
                       row=BUTTON_ROW,
                       column=BUTTON_COLUMN_START)
     enter_button.config(state='disabled') # default state is disabled
-    help_button = tk.Button(root, text='Info/Help', command=open_info_help)
+    help_button = tk.Button(root,
+                            text='Info/Help',
+                            command=open_info_help)
     help_button.grid(sticky='NESW',
                      row=BUTTON_ROW,
                      column=BUTTON_COLUMN_START + 1)
-    cancel_button = tk.Button(root, text='Cancel', command=root.destroy)
+    cancel_button = tk.Button(root,
+                              text='Cancel',
+                              command=root.destroy)
     cancel_button.grid(sticky='NESW',
                        row=BUTTON_ROW,
                        column=BUTTON_COLUMN_START + 2,
