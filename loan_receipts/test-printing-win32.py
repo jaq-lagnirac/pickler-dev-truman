@@ -1,3 +1,10 @@
+# Justin Caringal, Stephen Wynn
+# 
+# Testing grounds for accessing and interfacing with ESC/POS printers
+# 
+# Project start date: 2024-10-21
+# Project end date: YYYY-MM-DD
+
 import win32print
 from datetime import datetime, timezone
 
@@ -11,7 +18,7 @@ print(now)
 printer_name = 'Star SP700 TearBar (SP712)'
 handle = win32print.OpenPrinter(printer_name)
 
-# with open('full-pipeline-test-receipt.txt', 'r') as receipt:
+buffer = '\n\n\n\n\n\n\n\n\n\n'
 text = f'''
 If this prints, that means that I was successful!
 Justin Caringal, BSCS 2025
@@ -19,7 +26,14 @@ Pickler Memorial Library, Truman State University
 {now}
 ----------++++++++++----------++++++++++----------++++++++++
 123456789012345678901234567890123456789012///
-\n\n\n\n\n\n\n\n\n\n'''.encode()
+{buffer}'''.encode()
+
+text = None
+with open('full-pipeline-test-receipt.txt', 'r') as receipt:
+    text = receipt.read() + buffer
+    text = text.encode()
+print(text)
+
 win32print.StartDocPrinter(handle, 1, ('Hello, world!', None, None))
 win32print.WritePrinter(handle, text)
 win32print.EndDocPrinter(handle)
