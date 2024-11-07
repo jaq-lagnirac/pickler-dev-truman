@@ -7,10 +7,16 @@
 
 import win32print
 from datetime import datetime, timezone
+import sys
+from pprint import pp
 
-# printers = win32print.EnumPrinters(win32print.PRINTER_ENUM_LOCAL, None, 2)
-# for printer in printers:
-#     print(printer)
+printers = win32print.EnumPrinters(win32print.PRINTER_ENUM_LOCAL, None, 2)
+for printer in printers:
+    pp(printer)
+    print('\n')
+
+printer_names = [printer['pPrinterName'] for printer in printers]
+print(printer_names)
 
 now = datetime.now(timezone.utc).astimezone().strftime('%a %d %b %Y, %I:%M%p')
 print(now)
