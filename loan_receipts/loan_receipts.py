@@ -182,15 +182,18 @@ def find_printers() -> str:
                                        None,
                                        2)
     
+    PRINTER_NAME_BUFFER = 35
+    PORT_NAME_BUFFER = 15
+    LINE_LENGTH = PRINTER_NAME_BUFFER + PORT_NAME_BUFFER
     printer_info_heading = 'List of available printers and their ports:\n\n' \
-        f'{'PRINTER NAME':<30}{'PORT NAME':<15}\n'
-    printer_text = printer_info_heading + ('-' * 45) + '\n'
+        f'{'PRINTER NAME':<{PRINTER_NAME_BUFFER}}' \
+        f'{'PORT NAME':<{PORT_NAME_BUFFER}}\n'
+    printer_text = printer_info_heading + ('-' * LINE_LENGTH) + '\n'
     for printer in printers:
         printer_name = printer['pPrinterName']
         printer_port = printer['pPortName']
-        printer_text += f'{printer_name:<30}{printer_port:<15}\n'
-        from pprint import pp
-        pp(printer)
+        printer_text += f'{printer_name:<{PRINTER_NAME_BUFFER}}' \
+            f'{printer_port:<{PORT_NAME_BUFFER}}\n'
 
     return printer_text
 
@@ -231,8 +234,8 @@ def find_printers_window() -> None:
     printers_textbox = tk.Text(printers_window,
                            wrap='word',
                            font=('Courier New', FONT_TUPLE[1]),
-                           height=10,
-                           width=50)
+                           height=12,
+                           width=52)
     printers_textbox.grid(row=1,
                           column=0,
                           columnspan=3,
@@ -570,6 +573,12 @@ def open_printer(printer_name : str) -> Generator[any, any, any]:
         win32print.StartDocPrinter(handle, 1, print_tuple)
         yield handle
         win32print.EndDocPrinter(handle)
+    except Exception as e:
+        printer_error = 'Error occured during printing process.'
+        update_status(msg=printer_error,
+                      col=FAIL_COL,
+                      enter_state='normal')
+        error_msg(f'{printer_error}\n{e}')
     finally:
         # releases handle resource
         win32print.ClosePrinter(handle)
@@ -662,8 +671,8 @@ def start_printing_process() -> None:
     # generates receipt string
     update_status(msg=f'{len(checked_out_items)} items detected. ' \
                       'Formatting print job.')
-    buffer = '\n' * 10 # ensures whole receipt is above the tear bar
-    receipt_text = format_full_receipt(checked_out_items, time_now) + buffer
+    BUFFER = '\n' * 10 # ensures whole receipt is above the tear bar
+    receipt_text = format_full_receipt(checked_out_items, time_now) + BUFFER
 
     # prints to named and connected printer
     with open_printer(inputted_printer) as printer_handle:
