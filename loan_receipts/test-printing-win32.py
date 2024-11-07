@@ -24,7 +24,7 @@ print(now)
 printer_name = 'Star SP700 TearBar (SP712)'
 handle = win32print.OpenPrinter(printer_name)
 
-buffer = '\n\n\n\n\n\n\n\n\n\n'
+buffer = '\n' * 10
 text = f'''
 If this prints, that means that I was successful!
 Justin Caringal, BSCS 2025
@@ -34,11 +34,11 @@ Pickler Memorial Library, Truman State University
 123456789012345678901234567890123456789012///
 {buffer}'''.encode()
 
-text = None
-with open('full-pipeline-test-receipt.txt', 'r') as receipt:
-    text = receipt.read() + buffer
-    text = text.encode()
-print(text)
+# text = None
+# with open('full-pipeline-test-receipt.txt', 'r') as receipt:
+#     text = receipt.read() + buffer
+#     text = text.encode()
+# print(text)
 
 win32print.StartDocPrinter(handle, 1, ('Hello, world!', None, None))
 win32print.WritePrinter(handle, text)
