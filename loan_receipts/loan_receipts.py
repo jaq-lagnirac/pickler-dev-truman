@@ -16,6 +16,7 @@ import tkinter as tk
 import webbrowser as wb
 from datetime import datetime, timezone, timedelta
 from typing import Generator
+from contextlib import contextmanager
 import folioclient
 import win32print
 from PIL import ImageTk, Image
@@ -181,12 +182,15 @@ def find_printers() -> str:
                                        None,
                                        2)
     
-    printer_info_heading = f'{'PRINTER NAME':<45}{'PORT NAME':<30}\n'
-    printer_text = printer_info_heading + ('-' * 75) + '\n'
+    printer_info_heading = 'List of available printers and their ports:\n\n' \
+        f'{'PRINTER NAME':<30}{'PORT NAME':<15}\n'
+    printer_text = printer_info_heading + ('-' * 45) + '\n'
     for printer in printers:
         printer_name = printer['pPrinterName']
         printer_port = printer['pPortName']
-        printer_text += f'{printer_name:<45}{printer_port:<30}\n'
+        printer_text += f'{printer_name:<30}{printer_port:<15}\n'
+        from pprint import pp
+        pp(printer)
 
     return printer_text
 
@@ -227,11 +231,20 @@ def find_printers_window() -> None:
     printers_textbox = tk.Text(printers_window,
                            wrap='word',
                            font=('Courier New', FONT_TUPLE[1]),
-                           height=10)
+                           height=10,
+                           width=50)
     printers_textbox.grid(row=1,
                           column=0,
                           columnspan=3,
                           padx=(PRINTER_X_PADDING, PRINTER_X_PADDING))
+
+    # creates scrollbar
+    printers_scrollbar = tk.Scrollbar(printers_window)
+    printers_scrollbar.grid(row=0, column=100, rowspan=100, sticky='NS')
+
+    # configures text widget to use scrollbar
+    printers_textbox.config(yscrollcommand=printers_scrollbar.set)
+    printers_scrollbar.config(command=printers_textbox.yview)
     
     # adds text to text widget
     printers_txt = find_printers()
@@ -239,7 +252,7 @@ def find_printers_window() -> None:
     printers_textbox.config(state='disabled') # disables editing of help text
     
     # adds button to close help window
-    PRINTER_Y_PADDING_TUPLE = (10, 20)
+    PRINTER_Y_PADDING_TUPLE = (10, 10)
     cancel_info_button = tk.Button(printers_window,
                                    text='Cancel',
                                    command=printers_window.destroy)
@@ -532,6 +545,36 @@ DUE DATE: {item['dueDate']}
     return full_receipt_text
 
 
+@contextmanager
+def open_printer(printer_name : str) -> Generator[any, any, any]:
+    """A context manager for win32print functions.
+    
+    A context manager function to handle all win32print interactions
+    and safely exit if needed.
+    
+    Args:
+        printer_name (str): The name of the printer from which a 
+            handle will be generated and connected.
+    
+    Returns:
+        None
+    """
+
+    print_tuple = ('Receipt Print Job by github@jaq-lagnirac', # doc name
+                   None, # output file, None means print to printer
+                   None) # data type, None means default from printer driver
+
+    # acquires handle resource
+    handle = win32print.OpenPrinter(printer_name)
+    try:
+        win32print.StartDocPrinter(handle, 1, print_tuple)
+        yield handle
+        win32print.EndDocPrinter(handle)
+    finally:
+        # releases handle resource
+        win32print.ClosePrinter(handle)
+
+
 def start_printing_process() -> None:
     """The response to clicking the Enter button.
     
@@ -549,10 +592,22 @@ def start_printing_process() -> None:
     """
 
     # prevents future inputs
-    update_status(msg='Beginning receipt printing. Logging into FOLIO.',
+    update_status(msg='Beginning receipt printing. Checking printers.',
                   enter_state='disabled')
     
+    # checks to see if listed printer exists
+    printers = win32print.EnumPrinters(win32print.PRINTER_ENUM_LOCAL,
+                                       None,
+                                       2)
+    printer_names = [printer['pPrinterName'] for printer in printers]
+    inputted_printer = printer_name.get()
+    if inputted_printer not in printer_names:
+        update_status(msg=f'\"{inputted_printer}\" is not connected.',
+                      col=FAIL_COL)
+        return
+
     # logs into folioclient
+    update_status(msg='Logging into FOLIO.')
     f = login_folioclient()
     if not f:
         # safety net to enable enter button again,
@@ -599,7 +654,7 @@ def start_printing_process() -> None:
     checked_out_items = extract_queries(queries, patron_id)
     if not checked_out_items:
         update_status(msg='No items checked out within ' \
-                      f'the past 15 minutes by {patron_id}.',
+                      f'the past 15 minutes by \"{patron_id}\".',
                       col=SUCCESS_COL,
                       enter_state='normal')
         return
@@ -607,17 +662,16 @@ def start_printing_process() -> None:
     # generates receipt string
     update_status(msg=f'{len(checked_out_items)} items detected. ' \
                       'Formatting print job.')
-    receipt_text = format_full_receipt(checked_out_items, time_now)
+    buffer = '\n' * 10 # ensures whole receipt is above the tear bar
+    receipt_text = format_full_receipt(checked_out_items, time_now) + buffer
 
-    ### TEST PRINTING ###
-    # prints formatted receipt text to standard output
-    print(receipt_text)
-    # prints to external file for posterity
-    with open('full-receipt.txt', 'w') as output:
-        output.write(receipt_text)
+    # prints to named and connected printer
+    with open_printer(inputted_printer) as printer_handle:
+        encoded_text = receipt_text.encode('utf-8')
+        win32print.WritePrinter(printer_handle, encoded_text)
 
     # wrap-up statements
-    update_status(msg=f'Printed receipt for patron {patron_id}!',
+    update_status(msg=f'Printed receipt for patron \"{patron_id}\"!',
                   col=SUCCESS_COL,
                   enter_state='normal')
     return
@@ -687,7 +741,7 @@ if __name__ == '__main__':
                       columnspan=BUTTON_COUNT - 1)
     printer_name.insert(0, DEFAULT_PRINTER_NAME) # default value
     find_printers_button = tk.Button(root,
-                                    text='Find printers',
+                                    text='Find printers...',
                                     command=find_printers_window)
     find_printers_button.grid(sticky='NESW',
                               row=PRINTER_ROW,
