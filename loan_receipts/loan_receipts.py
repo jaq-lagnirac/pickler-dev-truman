@@ -15,6 +15,7 @@ import json
 import tkinter as tk
 import webbrowser as wb
 from datetime import datetime, timezone, timedelta
+from time import sleep
 from typing import Generator
 from contextlib import contextmanager
 import folioclient
@@ -34,10 +35,10 @@ HELP_PATH = os.path.join('texts', 'info-help-text.txt')
 
 # keys required in config.json
 REQUIRED_CONFIG_KEYS = {
-    'okapi_url',
-    'tenant',
-    'username',
-    'password',
+    'okapi_url' : 'https://okapi-mobius.folio.ebsco.com',
+    'tenant' : '[INSTITUTION ID]',
+    'username' : '[USERNAME]',
+    'password' : '[PASSWORD]',
     }
 
 ### FUNCTIONS ###
@@ -86,11 +87,11 @@ def error_msg(msg : str = 'Unknown error occured.') -> None:
     error = tk.Toplevel()
     error.title('Error')
     tk.Label(error, text=msg, justify='left').grid(row = 0, column = 1)
-    button = tk.Button(error,
-                       text='Cancel',
-                       width=25,
-                       command=error.destroy)
-    button.grid(row=1, column=1)
+    error_cancel = tk.Button(error,
+                             text='Cancel',
+                             width=25,
+                             command=error.destroy)
+    error_cancel.grid(row=1, column=1)
     error.mainloop()
 
 
@@ -243,16 +244,14 @@ def find_printers_window() -> None:
 
     # creates scrollbar
     printers_scrollbar = tk.Scrollbar(printers_window)
-    printers_scrollbar.grid(row=0, column=100, rowspan=100, sticky='NS')
+    printers_scrollbar.grid(row=0,
+                            column=100,
+                            rowspan=100,
+                            sticky='NS')
 
     # configures text widget to use scrollbar
     printers_textbox.config(yscrollcommand=printers_scrollbar.set)
     printers_scrollbar.config(command=printers_textbox.yview)
-    
-    # adds text to text widget
-    printers_txt = find_printers()
-    printers_textbox.insert('end', printers_txt) # needs to be before text disable
-    printers_textbox.config(state='disabled') # disables editing of help text
     
     # adds button to close help window
     PRINTER_Y_PADDING_TUPLE = (10, 10)
@@ -264,6 +263,20 @@ def find_printers_window() -> None:
                             sticky='NESW',
                             padx=(0, PRINTER_X_PADDING),
                             pady=PRINTER_Y_PADDING_TUPLE)
+    
+    # adds text to text widget
+    printers_txt = find_printers()
+    # fancy printing text for some extra pizzazz
+    # not at all required for proper code operation
+    for char in printers_txt:
+        try:
+            printers_textbox.config(state='normal')
+            printers_textbox.insert('end', char)
+            printers_textbox.config(state='disabled')
+            printers_window.update()
+            sleep(0.0025)
+        except tk.TclError:
+            return # safely ends function in case of premature window closure
     
     printers_window.mainloop()
 
@@ -310,7 +323,10 @@ def open_info_help() -> None:
 
     # creates scrollbar
     info_scrollbar = tk.Scrollbar(info_window)
-    info_scrollbar.grid(row=0, column=100, rowspan=100, sticky='NS')
+    info_scrollbar.grid(row=0,
+                        column=100,
+                        rowspan=100,
+                        sticky='NS')
 
     # configures text widget to use scrollbar
     info_textbox.config(yscrollcommand=info_scrollbar.set)
@@ -363,10 +379,13 @@ def login_folioclient() -> folioclient.FolioClient:
 
     # checks for existence of config.json file, notifies user if none available -jaq
     if not os.path.exists(config_name):
+        with open('config.json', 'w') as config_template:
+            json.dump(REQUIRED_CONFIG_KEYS, config_template, indent=4)
         status_msg = f'\"{config_name}\" not detected.'
         update_status(msg=status_msg,
                       col=FAIL_COL)
-        error_msg(status_msg)
+        error_msg(f'{status_msg} Creating template \"config.json\".')
+        return
 
     # Setup FOLIO variables
     login = None # scope resolution
@@ -374,12 +393,14 @@ def login_folioclient() -> folioclient.FolioClient:
         login = json.load(config)
 
     # checks to ensure config file is set up correctly -jaq
-    if not REQUIRED_CONFIG_KEYS.issubset(set(login.keys())): # if required keys not in login
+    required_key_names = set(REQUIRED_CONFIG_KEYS.keys())
+    if not required_key_names.issubset(set(login.keys())): # if required keys not in login
         update_status(msg=f'\"{config_name}\" improperly set up.',
                       col=FAIL_COL)
-        error_msg(f'\"{config_name}\" improperly set up.\nPlease check keys.' + \
-                  f'\nDetected keys: {set(login.keys())}' + \
-                  f'\nRequired keys: {REQUIRED_CONFIG_KEYS}')
+        error_msg(f'\"{config_name}\" improperly set up.\nPlease check keys.' \
+                  f'\nDetected keys: {set(login.keys())}' \
+                  f'\nRequired keys: {required_key_names}')
+        return
 
     # unpacks relevant data from config.json file
     okapi_url = login['okapi_url']
@@ -399,6 +420,7 @@ def login_folioclient() -> folioclient.FolioClient:
         error_msg(f'{status_msg}\n{e}')
 
     return f
+
 
 def extract_single_query(query : dict,
                          patron_id : str) -> dict:
@@ -441,9 +463,9 @@ def extract_single_query(query : dict,
     # some items (for some reason) do not have a call number
     # replaces blank key with filler to prevent current
     # and future KeyError(s)
-    try:
+    if 'callNumber' in item:
         item_info['callNumber'] = item['callNumber']
-    except KeyError:
+    else:
         item_info['callNumber'] = 'n/a'
     
     return item_info
@@ -610,9 +632,12 @@ def start_printing_process() -> None:
                                        2)
     printer_names = [printer['pPrinterName'] for printer in printers]
     inputted_printer = printer_name.get()
-    if inputted_printer not in printer_names:
-        update_status(msg=f'\"{inputted_printer}\" is not connected.',
-                      col=FAIL_COL)
+    inputted_printer = inputted_printer.strip() # strips whitespace from input
+    if send_to_printer.get() and (inputted_printer not in printer_names):
+        update_status(msg=f'\"{inputted_printer}\" is not ' \
+                      'a recognized printer.',
+                      col=FAIL_COL,
+                      enter_state='normal')
         return
 
     # logs into folioclient
@@ -674,10 +699,18 @@ def start_printing_process() -> None:
     BUFFER = '\n' * 10 # ensures whole receipt is above the tear bar
     receipt_text = format_full_receipt(checked_out_items, time_now) + BUFFER
 
-    # prints to named and connected printer
-    with open_printer(inputted_printer) as printer_handle:
-        encoded_text = receipt_text.encode('utf-8')
-        win32print.WritePrinter(printer_handle, encoded_text)
+    receipt_filename = None # scope resolution
+    if send_to_printer.get():
+        # prints to named and connected printer
+        with open_printer(inputted_printer) as printer_handle:
+            encoded_text = receipt_text.encode('utf-8')
+            win32print.WritePrinter(printer_handle, encoded_text)
+    else:
+        # prints to .txt file in working directory
+        iso_prefix = time_now.astimezone().strftime('%Y%m%d_%H%M%S')
+        receipt_filename = f'{iso_prefix}_receipt.txt'
+        with open(receipt_filename, 'w') as receipt_file:
+            receipt_file.write(receipt_text)
 
     # wrap-up statements
     update_status(msg=f'Printed receipt for patron \"{patron_id}\"!',
@@ -725,8 +758,9 @@ if __name__ == '__main__':
                     row=CONFIG_ROW,
                     column=CONFIG_COLUMN,
                     padx=TEXT_SIDE_PADDING)
-    config_relpath = tk.Entry(root, width=INPUT_WIDTH)
-    config_relpath.grid(sticky='WE',
+    config_relpath = tk.Entry(root,
+                              width=INPUT_WIDTH)
+    config_relpath.grid(sticky='NESW',
                         row=CONFIG_ROW,
                         column=CONFIG_COLUMN + 1,
                         columnspan=BUTTON_COUNT,
@@ -743,12 +777,14 @@ if __name__ == '__main__':
                      row=PRINTER_ROW,
                      column=PRINTER_COLUMN,
                      padx=TEXT_SIDE_PADDING)
-    printer_name = tk.Entry(root, width=INPUT_WIDTH)
-    printer_name.grid(sticky='WE',
+    printer_name = tk.Entry(root,
+                            width=INPUT_WIDTH)
+    printer_name.grid(sticky='NESW',
                       row=PRINTER_ROW,
                       column=PRINTER_COLUMN + 1,
                       columnspan=BUTTON_COUNT - 1)
     printer_name.insert(0, DEFAULT_PRINTER_NAME) # default value
+    # adds window to list printer names
     find_printers_button = tk.Button(root,
                                     text='Find printers...',
                                     command=find_printers_window)
@@ -756,9 +792,30 @@ if __name__ == '__main__':
                               row=PRINTER_ROW,
                               column=PRINTER_COLUMN + BUTTON_COUNT,
                               padx=INPUT_SIDE_PADDING)
+    # adds option to send to printer or working directory
+    CHECKBOX_ROW = PRINTER_ROW + 1
+    CHECKBOX_COLUMN = IMAGE_COLUMN + 1
+    send_to_printer = tk.BooleanVar(value=True)
+    true_txt = 'Send text to printer listed above.'
+    false_txt = 'Send text to .TXT file in working directly.'
+    # updates printer checkbox text using lambda expression
+    update_checkbox = lambda : printer_checkbox.config(text=true_txt) \
+        if send_to_printer.get() \
+            else printer_checkbox.config(text=false_txt)
+    printer_checkbox = tk.Checkbutton(root,
+                                      text=true_txt,
+                                      justify='left',
+                                      variable=send_to_printer,
+                                      font=(FONT_TUPLE[0], 8),
+                                      command=update_checkbox)
+    printer_checkbox.grid(sticky='NSW',
+                          row=CHECKBOX_ROW,
+                          column=CHECKBOX_COLUMN,
+                          columnspan=BUTTON_COUNT,
+                          padx=INPUT_SIDE_PADDING)
 
     # requests patron ID card information
-    ID_ROW = PRINTER_ROW + 1
+    ID_ROW = CHECKBOX_ROW + 1
     ID_COLUMN = IMAGE_COLUMN
     id_txt = tk.Label(root,
                       text='Patron ID:\t',
@@ -771,7 +828,7 @@ if __name__ == '__main__':
     id_input = tk.Entry(root,
                         width=INPUT_WIDTH,
                         textvariable=id_string)
-    id_input.grid(sticky='WE',
+    id_input.grid(sticky='NESW',
                   row=ID_ROW,
                   column=ID_COLUMN + 1,
                   columnspan=BUTTON_COUNT,
