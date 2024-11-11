@@ -796,8 +796,8 @@ if __name__ == '__main__':
     CHECKBOX_ROW = PRINTER_ROW + 1
     CHECKBOX_COLUMN = IMAGE_COLUMN + 1
     send_to_printer = tk.BooleanVar(value=True)
-    true_txt = 'Send text to printer listed above.'
-    false_txt = 'Send text to .TXT file in working directly.'
+    true_txt = 'Send receipt to printer listed above.'
+    false_txt = 'Send receipt to .TXT file in working directly.'
     # updates printer checkbox text using lambda expression
     update_checkbox = lambda : printer_checkbox.config(text=true_txt) \
         if send_to_printer.get() \
