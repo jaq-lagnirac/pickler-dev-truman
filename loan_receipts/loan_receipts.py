@@ -5,7 +5,8 @@
 # use, may be eventually extended to outside use.
 # 
 # Project start date: 2024-10-21
-# Project end date: YYYY-MM-DD
+# Project end date: 2024-11-12
+# (initial delivery before comprehensive testing)
 
 ### LIBRARIES / PACKAGES ###
 
@@ -31,7 +32,6 @@ DEFAULT_COL = '#000000'
 FONT_TUPLE = ('Verdana', 10)
 LOGO_PATH = os.path.join('images', 'logo-no-background.png')
 HELP_PATH = os.path.join('texts', 'info-help-text.txt')
-
 
 # keys required in config.json
 REQUIRED_CONFIG_KEYS = {
@@ -183,6 +183,7 @@ def find_printers() -> str:
                                        None,
                                        2)
     
+    # formats header with buffers
     PRINTER_NAME_BUFFER = 35
     PORT_NAME_BUFFER = 15
     LINE_LENGTH = PRINTER_NAME_BUFFER + PORT_NAME_BUFFER
@@ -190,6 +191,7 @@ def find_printers() -> str:
         f'{'PRINTER NAME':<{PRINTER_NAME_BUFFER}}' \
         f'{'PORT NAME':<{PORT_NAME_BUFFER}}\n'
     printer_text = printer_info_heading + ('-' * LINE_LENGTH) + '\n'
+    # prints extracted list of printers
     for printer in printers:
         printer_name = printer['pPrinterName']
         printer_port = printer['pPortName']
@@ -226,7 +228,8 @@ def find_printers_window() -> None:
     printer_image = Image.open(resource_path(LOGO_PATH)) # opens image
     printer_image = image.resize(size=[int(INFO_IMAGE_MULTIPLIER * length) \
                                     for length in image.size])
-    printer_logo = ImageTk.PhotoImage(printer_image) # converts image to format usable by Tkinter
+    # converts image to format usable by Tkinter
+    printer_logo = ImageTk.PhotoImage(printer_image)
     tk.Label(printers_window, image=printer_logo).grid(row=0,
                                                        column=0,
                                                        columnspan=3)
@@ -307,7 +310,8 @@ def open_info_help() -> None:
     info_image = Image.open(resource_path(LOGO_PATH)) # opens image
     info_image = image.resize(size=[int(INFO_IMAGE_MULTIPLIER * length) \
                                     for length in image.size])
-    info_logo = ImageTk.PhotoImage(info_image) # converts image to format usable by Tkinter
+    # converts image to format usable by Tkinter
+    info_logo = ImageTk.PhotoImage(info_image)
     tk.Label(info_window, image=info_logo).grid(row=0,
                                                 column=0,
                                                 columnspan=3)
@@ -377,7 +381,7 @@ def login_folioclient() -> folioclient.FolioClient:
 
     config_name = config_relpath.get()
 
-    # checks for existence of config.json file, notifies user if none available -jaq
+    # checks for existence of config.json file, notifies user if none available
     if not os.path.exists(config_name):
         with open('config.json', 'w') as config_template:
             json.dump(REQUIRED_CONFIG_KEYS, config_template, indent=4)
@@ -392,9 +396,10 @@ def login_folioclient() -> folioclient.FolioClient:
     with open(config_name ,'r') as config:
         login = json.load(config)
 
-    # checks to ensure config file is set up correctly -jaq
+    # checks to ensure config file is set up correctly
     required_key_names = set(REQUIRED_CONFIG_KEYS.keys())
-    if not required_key_names.issubset(set(login.keys())): # if required keys not in login
+    # if required keys not in login
+    if not required_key_names.issubset(set(login.keys())):
         update_status(msg=f'\"{config_name}\" improperly set up.',
                       col=FAIL_COL)
         error_msg(f'\"{config_name}\" improperly set up.\nPlease check keys.' \
@@ -537,7 +542,7 @@ def format_full_receipt(checked_out_items : list,
     RECEIPT_TEXT_WIDTH = 42
 
     # defaults conversion to system timezone
-    #https://docs.python.org/3/library/datetime.html#datetime.datetime.astimezone
+    # https://docs.python.org/3/library/datetime.html#datetime.datetime.astimezone
     top_loan_date = time_now.astimezone().strftime('%a %d %b %Y, %I:%M%p')
 
     # generates receipt header
@@ -742,7 +747,8 @@ if __name__ == '__main__':
     image = Image.open(resource_path(LOGO_PATH)) # opens image
     image = image.resize(size=[int(IMAGE_MULTIPLIER * length) \
                                for length in image.size])
-    logo = ImageTk.PhotoImage(image) # converts image to format usable by Tkinter
+    # converts image to format usable by Tkinter
+    logo = ImageTk.PhotoImage(image)
     tk.Label(root, image=logo).grid(row=IMAGE_ROW,
                                     column=IMAGE_COLUMN,
                                     columnspan=100,
@@ -883,3 +889,4 @@ if __name__ == '__main__':
     description.grid(sticky='W', row=BOTTOM_ROW, column=0, columnspan=100)
 
     root.mainloop()
+    
