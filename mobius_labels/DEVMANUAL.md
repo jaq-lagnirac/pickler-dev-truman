@@ -18,7 +18,7 @@ or the current maintainers of this project.
 
 1. [Purpose](#purpose)
 1. [Project Directory Breakdown](#project-directory-breakdown)
-1. [Python Dependencies](#dependencies)
+1. [Python Dependencies](#python-dependencies)
     - [Standard Library Dependencies](#standard-library-dependencies)
     - [External Dependencies](#external-dependencies)
         - [PyInstaller](#pyinstaller)
@@ -193,6 +193,6 @@ Developed by [Pickler Memorial Library](https://library.truman.edu/),
 ## Timestamp Details
 
 - **DEVMANUAL.md originally published:** 2024-10-18, Project v2.1.0
-- **DEVMANUAL.md last updated:** 2024-10-25, Project v2.2.1
-- **DEVMANUAL.md version:** v1.2
+- **DEVMANUAL.md last updated:** 2024-11-12, Project v2.2.1
+- **DEVMANUAL.md version:** v1.3
 - **Raw ver. info. (for tracking development):** Z2l0aHViQGphcS1sYWduaXJhYw==
