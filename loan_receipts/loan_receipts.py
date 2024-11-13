@@ -95,7 +95,7 @@ def error_msg(msg : str = 'Unknown error occured.') -> None:
     error.mainloop()
 
 
-def update_validation(*entry : tk.Event) -> None:
+def update_validation(*entry : tk.Event) -> bool:
     """Updates id_validation_msg based off of input.
     
     A function which updates a tkinter Label based off of
@@ -108,22 +108,26 @@ def update_validation(*entry : tk.Event) -> None:
         entry (str): The user-inputted entry, not interacted with
     
     Returns:
-        None
+        bool: Returns True if patron ID is valid, False otherwise
     """
 
     # retrieves patron id from text field
     patron_id = id_input.get()
 
+    is_valid_id = None
     if patron_id.isdigit():
         status.config(text='Valid Patron ID.',
                       fg=SUCCESS_COL)
         enter_button.config(state='normal')
+        is_valid_id = True
     else:
         status.config(text='Patron ID must be a numerical value.',
                       fg=FAIL_COL)
         enter_button.config(state='disabled')
+        is_valid_id = False
+        
     root.update()
-    return
+    return is_valid_id
 
 
 def update_status(*, # requires all arguments to be keyword-only arguments
@@ -383,12 +387,12 @@ def login_folioclient() -> folioclient.FolioClient:
 
     # checks for existence of config.json file, notifies user if none available
     if not os.path.exists(config_name):
-        with open('config.json', 'w') as config_template:
+        with open(config_name, 'w') as config_template:
             json.dump(REQUIRED_CONFIG_KEYS, config_template, indent=4)
         status_msg = f'\"{config_name}\" not detected.'
         update_status(msg=status_msg,
                       col=FAIL_COL)
-        error_msg(f'{status_msg} Creating template \"config.json\".')
+        error_msg(f'{status_msg} Creating template \"{config_name}\".')
         return
 
     # Setup FOLIO variables
@@ -842,6 +846,10 @@ if __name__ == '__main__':
     # new error handling with increased response time
     # https://stackoverflow.com/a/51421764    
     id_string.trace_add('write', update_validation)
+    # adds Enter/Return in the id input as an option to start program
+    validate_and_start = lambda *_ : start_printing_process() \
+        if update_validation() else None
+    id_input.bind('<Return>', validate_and_start)
 
     # bottom rows
     BOTTOM_ROW = 100 # arbitrarily large number
