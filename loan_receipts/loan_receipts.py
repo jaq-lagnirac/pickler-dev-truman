@@ -125,7 +125,7 @@ def update_validation(*entry : tk.Event) -> bool:
                       fg=FAIL_COL)
         enter_button.config(state='disabled')
         is_valid_id = False
-        
+
     root.update()
     return is_valid_id
 
@@ -807,7 +807,7 @@ if __name__ == '__main__':
     CHECKBOX_COLUMN = IMAGE_COLUMN + 1
     send_to_printer = tk.BooleanVar(value=True)
     true_txt = 'Send receipt to printer listed above.'
-    false_txt = 'Send receipt to .TXT file in working directly.'
+    false_txt = 'Send receipt to .TXT file in working directory.'
     # updates printer checkbox text using lambda expression
     update_checkbox = lambda : printer_checkbox.config(text=true_txt) \
         if send_to_printer.get() \
