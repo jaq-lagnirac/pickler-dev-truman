@@ -62,7 +62,7 @@ def resource_path(relpath : str) -> str:
 
     # https://stackoverflow.com/a/72060275
     try:
-        base_path = sys._MEIPASS
+        base_path = sys._MEIPASS # only found in PyInstaller
     except Exception:
         base_path = os.path.abspath(".")
 
@@ -114,6 +114,7 @@ def update_validation(*entry : tk.Event) -> bool:
     # retrieves patron id from text field
     patron_id = id_input.get()
 
+    # function validates to ensure patron_id contains only numbers
     is_valid_id = None
     if patron_id.isdigit():
         status.config(text='Valid Patron ID.',
@@ -126,6 +127,7 @@ def update_validation(*entry : tk.Event) -> bool:
         enter_button.config(state='disabled')
         is_valid_id = False
 
+    # wrap-up statements
     root.update()
     return is_valid_id
 
@@ -152,7 +154,8 @@ def update_status(*, # requires all arguments to be keyword-only arguments
         None
     """
 
-    # changes status message
+    # changes status message if it is inputted,
+    # otherwise keep it the same
     if msg:
         status.config(text=msg, fg=col)
     
@@ -194,11 +197,14 @@ def find_printers() -> str:
     printer_info_heading = 'List of available printers and their ports:\n\n' \
         f'{'PRINTER NAME':<{PRINTER_NAME_BUFFER}}' \
         f'{'PORT NAME':<{PORT_NAME_BUFFER}}\n'
+    # adds line buffer in between headers and information
     printer_text = printer_info_heading + ('-' * LINE_LENGTH) + '\n'
     # prints extracted list of printers
     for printer in printers:
+        # extracts printer information from object
         printer_name = printer['pPrinterName']
         printer_port = printer['pPortName']
+        # formats information and adds it to the output text
         printer_text += f'{printer_name:<{PRINTER_NAME_BUFFER}}' \
             f'{printer_port:<{PORT_NAME_BUFFER}}\n'
 
@@ -708,7 +714,6 @@ def start_printing_process() -> None:
     BUFFER = '\n' * 10 # ensures whole receipt is above the tear bar
     receipt_text = format_full_receipt(checked_out_items, time_now) + BUFFER
 
-    receipt_filename = None # scope resolution
     if send_to_printer.get():
         # prints to named and connected printer
         with open_printer(inputted_printer) as printer_handle:
