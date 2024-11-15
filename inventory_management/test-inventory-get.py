@@ -68,15 +68,20 @@ if not f:
     print('NOOOOOO')
     sys.exit()
 
-user_input = 'AC'
-query = f'callNumber adj \"{user_input}*\"'
-inventory = f.folio_get_all(path='/inventory/items',
-                            key='items')
+user_input = 'AY'
+query = f'effectiveShelvingOrder==\"{user_input}*\"'
+print(query)
+inventory = f.folio_get_all(path='/inventory/items/',
+                            key='items',
+                            query=query)
 
 from pprint import pp
+
 counter = 0
 for item in inventory:
-    pp(item)
+    # pp(item)
+    print(item['callNumber'], '\t\t', item['effectiveShelvingOrder'], '\t\t', item['title'])
     counter += 1
 
 print(f'\n\n\n\nitems: {counter}')
+
