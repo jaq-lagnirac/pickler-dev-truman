@@ -8,6 +8,8 @@
 import os
 import sys
 import json
+import multiprocessing
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import folioclient
 
 # keys required in config.json
@@ -63,25 +65,42 @@ def login_folioclient() -> folioclient.FolioClient:
     return f
 
 
+def extract_item_info(item):
+    item_info = {
+        item['title']
+    }
+
+
 f = login_folioclient()
 if not f:
     print('NOOOOOO')
     sys.exit()
 
-user_input = 'AY'
-query = f'effectiveShelvingOrder==\"{user_input}*\"'
+user_input = 'A'
+query = f'effectiveShelvingOrder==\"{user_input}*\"'# and effectiveLocation==\"*TRUMAN Micro Film*\"'# sortBy effectiveShelvingOrder'
 print(query)
 inventory = f.folio_get_all(path='/inventory/items/',
                             key='items',
                             query=query)
 
+# extracted_items = []
+# processes = []
+# print('starting threadpoolexecutor')
+# with ThreadPoolExecutor(max_workers=multiprocessing.cpu_count()) as executor:
+#     # submits queries as tasks to the executor
+#     for item in inventory:
+#         processes.append(executor.submit(extract_item_info, item))
+#     print(len(processes))
+#     for task in as_completed(processes):
+#         extracted_items.append(task.result())
+
 from pprint import pp
 
 counter = 0
-for item in inventory:
+for index, item in enumerate(inventory):
     # pp(item)
-    print(item['callNumber'], '\t\t', item['effectiveShelvingOrder'], '\t\t', item['title'])
+    location = item['effectiveLocation']['name']
+    print(index, '\t\t', location)
     counter += 1
 
 print(f'\n\n\n\nitems: {counter}')
-
