@@ -12,6 +12,18 @@ import multiprocessing
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import folioclient
 
+VARIABLE_KEYS = [
+    'title',
+    'callNumber',
+    'effectiveShelvingOrder',
+    'volume',
+]
+ALL_INFO_KEYS = VARIABLE_KEYS + [
+    'status',
+    'date',
+    'effectiveLocation',
+]
+
 # keys required in config.json
 REQUIRED_CONFIG_KEYS = {
     'okapi_url' : 'https://okapi-mobius.folio.ebsco.com',
@@ -64,43 +76,65 @@ def login_folioclient() -> folioclient.FolioClient:
 
     return f
 
+from datetime import datetime
 
 def extract_item_info(item):
+    iso_date = datetime.fromisoformat(item['status']['date'])
+    human_readable_date = iso_date.astimezone().strftime('%b %d %Y')
     item_info = {
-        item['title']
+        'effectiveLocation' : item['effectiveLocation']['name'],
+        'status' : item['status']['name'],
+        'date' : human_readable_date,
     }
-
+    info_keys = VARIABLE_KEYS
+    for key in info_keys:
+        if key in item:
+            item_info[key] = item[key]
+        else:
+            item_info[key] = '-'
+    return item_info
 
 f = login_folioclient()
 if not f:
     print('NOOOOOO')
     sys.exit()
 
-user_input = 'A'
+user_input = 'PN'
 query = f'effectiveShelvingOrder==\"{user_input}*\"'# and effectiveLocation==\"*TRUMAN Micro Film*\"'# sortBy effectiveShelvingOrder'
 print(query)
 inventory = f.folio_get_all(path='/inventory/items/',
                             key='items',
                             query=query)
 
-# extracted_items = []
-# processes = []
-# print('starting threadpoolexecutor')
-# with ThreadPoolExecutor(max_workers=multiprocessing.cpu_count()) as executor:
-#     # submits queries as tasks to the executor
-#     for item in inventory:
-#         processes.append(executor.submit(extract_item_info, item))
-#     print(len(processes))
-#     for task in as_completed(processes):
-#         extracted_items.append(task.result())
-
 from pprint import pp
 
 counter = 0
-for index, item in enumerate(inventory):
+from tqdm import tqdm
+item_list = []
+for item in tqdm(inventory):
     # pp(item)
-    location = item['effectiveLocation']['name']
-    print(index, '\t\t', location)
-    counter += 1
+    # pp(item['status'])
+    # pp(extract_item_info(item))
+    extracted_item = extract_item_info(item)
+    item_list.append(extracted_item)
+    # location = item['effectiveLocation']['name']
+    # print(index, '\t\t', location)
+    # counter += 1
+    # if item['status']['name'] == 'Checked out':
+    #     pp(extract_item_info(item))
+sorting_reqs = lambda info : (
+    info['effectiveLocation'],
+    info['effectiveShelvingOrder']
+)
+sorted_list = sorted(tqdm(item_list), key=sorting_reqs)
+
+import csv
+with open('test-query.csv', 'w', newline='') as csvfile:
+    fieldnames = ALL_INFO_KEYS
+    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+    
+    writer.writeheader()
+    for item in tqdm(sorted_list):
+        writer.writerow(item)
 
 print(f'\n\n\n\nitems: {counter}')
