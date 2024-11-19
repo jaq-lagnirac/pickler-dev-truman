@@ -105,7 +105,7 @@ def fetch_isbn(instance_id : str) -> str:
     # etc.)
     isbn_dict = {}
     for id in instance['identifiers']:
-        identifier_type = f.folio_get_single_object(path=f'identifier-types/{id["identifierTypeId"]}')
+        identifier_type = f.folio_get_single_object(path=f'identifier-types/{id['identifierTypeId']}')
         if identifier_type['name'] == 'ISBN':
             isbn = id['value'].split()[0] # split amongst spaces, only keeps number, removes ()
             isbn_dict[len(isbn)] = isbn # keyed by length to easily determine ISBN-13 vs ISBN-10
@@ -237,7 +237,7 @@ def printPoLines( order, po ):
             copies = "1"
 
         try:
-            cost = f'${line["cost"]["poLineEstimatedPrice"] :.2f}' # rounds to 2 decimal places
+            cost = f'${line['cost']['poLineEstimatedPrice'] :.2f}' # rounds to 2 decimal places
         except:
             cost = "$?.00"
 
@@ -328,12 +328,19 @@ def printPoLines( order, po ):
         ISBN = 12 # originally 12
         # print(LEFT_SLIP_X, RIGHT_SLIP_X, TITLE, PUB, OL, MAT_TYPE, LOC, NOTES, ISBN)
 
-        bottom_row = f'{isbn:<24}{cost} - {fund} - {vendor}{date_created:>24}'
+        publisher_text = f'{publisher}. {pubdate}'
+        if len(publisher_text) >= 70:
+            publisher_text = publisher_text[:67] + '...'
+
+        vendor_text = vendor
+        if len(vendor) >= 10:
+            vendor_text = vendor_text[:7] + '...'
+        bottom_row = f'{isbn:<24}{cost} - {fund} - {vendor_text[:10]}{date_created:>24}'
 
         # formats routing slip (left side)
         canvas.setFont("Times-Roman", 12.0)
         canvas.drawString(LEFT_SLIP_X, TITLE + yoffset, title)
-        canvas.drawString(LEFT_SLIP_X, PUB + yoffset, publisher + ". " + pubdate)
+        canvas.drawString(LEFT_SLIP_X, PUB + yoffset, publisher_text[:70])
         canvas.drawString(LEFT_SLIP_X, OL + yoffset, orderline)
         canvas.drawString(LEFT_SLIP_X, MAT_TYPE + yoffset, material_type)
         canvas.drawString(LEFT_SLIP_X, LOC + yoffset, location)
@@ -346,7 +353,7 @@ def printPoLines( order, po ):
 
         # formats record keeping slip (right side)
         canvas.drawString(RIGHT_SLIP_X, TITLE + yoffset, title)
-        canvas.drawString(RIGHT_SLIP_X, PUB + yoffset, publisher + ". " + pubdate)
+        canvas.drawString(RIGHT_SLIP_X, PUB + yoffset, publisher_text[:70])
         canvas.drawString(RIGHT_SLIP_X, OL + yoffset, orderline)
         canvas.drawString(RIGHT_SLIP_X, MAT_TYPE + yoffset, material_type)
         canvas.drawString(RIGHT_SLIP_X, LOC + yoffset, location)
