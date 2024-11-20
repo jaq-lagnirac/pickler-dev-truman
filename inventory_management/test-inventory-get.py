@@ -92,6 +92,7 @@ def extract_item_info(item):
             item_info[key] = item[key]
         else:
             item_info[key] = '-'
+    print(item_info['effectiveLocation'])
     return item_info
 
 f = login_folioclient()
@@ -100,32 +101,32 @@ if not f:
     sys.exit()
 
 user_input = 'PN'
-query = f'effectiveShelvingOrder==\"{user_input}*\"'# and effectiveLocation==\"*TRUMAN Micro Film*\"'# sortBy effectiveShelvingOrder'
+query = f'effectiveShelvingOrder==\"{user_input}*\" and effectiveLocation.name==\"TRUMAN Media DVD\"'# AND cql.keywords adj \"TRUMAN Media DVD\"'# sortBy effectiveShelvingOrder'
 print(query)
 inventory = f.folio_get_all(path='/inventory/items/',
                             key='items',
                             query=query)
 
 from pprint import pp
+# pp(f.get_folio_http_client())
+# sys.exit()
 
 counter = 0
 from tqdm import tqdm
-item_list = []
-for item in tqdm(inventory):
-    # pp(item)
-    # pp(item['status'])
-    # pp(extract_item_info(item))
-    extracted_item = extract_item_info(item)
-    item_list.append(extracted_item)
-    # location = item['effectiveLocation']['name']
-    # print(index, '\t\t', location)
-    # counter += 1
-    # if item['status']['name'] == 'Checked out':
-    #     pp(extract_item_info(item))
+item_list = None
+from concurrent.futures import ThreadPoolExecutor
+with ThreadPoolExecutor() as executor:
+    item_list = executor.map(extract_item_info, inventory)
+
+for item in item_list:
+    print(item)
+
 sorting_reqs = lambda info : (
     info['effectiveLocation'],
     info['effectiveShelvingOrder']
 )
+print(f'\n\n\n\nitems: {counter}')
+
 sorted_list = sorted(tqdm(item_list), key=sorting_reqs)
 
 import csv
@@ -137,4 +138,3 @@ with open('test-query.csv', 'w', newline='') as csvfile:
     for item in tqdm(sorted_list):
         writer.writerow(item)
 
-print(f'\n\n\n\nitems: {counter}')
