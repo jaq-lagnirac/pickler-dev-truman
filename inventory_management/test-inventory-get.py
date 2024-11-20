@@ -13,7 +13,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import folioclient
 
 VARIABLE_KEYS = [
-    'title',
+    # 'title',
     'callNumber',
     'effectiveShelvingOrder',
     'volume',
@@ -92,7 +92,6 @@ def extract_item_info(item):
             item_info[key] = item[key]
         else:
             item_info[key] = '-'
-    print(item_info['effectiveLocation'])
     return item_info
 
 f = login_folioclient()
@@ -101,7 +100,7 @@ if not f:
     sys.exit()
 
 user_input = 'PN'
-query = f'effectiveShelvingOrder==\"{user_input}*\" and effectiveLocation.name==\"TRUMAN Media DVD\"'# AND cql.keywords adj \"TRUMAN Media DVD\"'# sortBy effectiveShelvingOrder'
+query = f'effectiveShelvingOrder==\"{user_input}*\"'# and effectiveLocation.name==\"TRUMAN Media DVD\"'# AND cql.keywords adj \"TRUMAN Media DVD\"'# sortBy effectiveShelvingOrder'
 print(query)
 inventory = f.folio_get_all(path='/inventory/items/',
                             key='items',
@@ -113,13 +112,21 @@ from pprint import pp
 
 counter = 0
 from tqdm import tqdm
-item_list = None
-from concurrent.futures import ThreadPoolExecutor
-with ThreadPoolExecutor() as executor:
-    item_list = executor.map(extract_item_info, inventory)
+item_list = []
+for item in tqdm(inventory):
+    extracted_item = extract_item_info(item)
+    item_list.append(extracted_item)
+    counter += 1
+    if counter == 200:
+        break
 
-for item in item_list:
-    print(item)
+# item_list = None
+# from concurrent.futures import ThreadPoolExecutor
+# with ThreadPoolExecutor() as executor:
+#     item_list = executor.map(extract_item_info, inventory)
+
+# for item in item_list:
+#     print(item)
 
 sorting_reqs = lambda info : (
     info['effectiveLocation'],
