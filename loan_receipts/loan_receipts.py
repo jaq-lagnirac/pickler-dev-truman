@@ -701,6 +701,14 @@ def start_printing_process() -> None:
     # iterates through queries to find matches to patron ID
     update_status(msg='Extracting item information.')
     checked_out_items = extract_queries(queries, patron_id)
+    id_input.delete(0, 'end') # deletes patron ID from input
+    # test_item = {
+    #     'title' : 'Loan Receipt Prints by jaq-lagnirac',
+    #     'barcode' : 'Barcode',
+    #     'dueDate' : 'Due',
+    #     'callNumber' : 'Call Number'
+    # }
+    # checked_out_items = [test_item]
     if not checked_out_items:
         update_status(msg='No items checked out within ' \
                       f'the past 15 minutes by \"{patron_id}\".',
@@ -709,7 +717,9 @@ def start_printing_process() -> None:
         return
 
     # generates receipt string
-    update_status(msg=f'{len(checked_out_items)} items detected. ' \
+    num_items = len(checked_out_items)
+    plural_s = lambda : 's' if num_items != 1 else ''
+    update_status(msg=f'{num_items} item{plural_s()} detected. ' \
                       'Formatting print job.')
     BUFFER = '\n' * 10 # ensures whole receipt is above the tear bar
     receipt_text = format_full_receipt(checked_out_items, time_now) + BUFFER
