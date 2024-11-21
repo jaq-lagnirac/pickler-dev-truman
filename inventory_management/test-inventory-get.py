@@ -138,10 +138,18 @@ sorted_list = sorted(tqdm(item_list), key=sorting_reqs)
 
 import csv
 with open('test-query.csv', 'w', newline='') as csvfile:
-    fieldnames = ALL_INFO_KEYS
+    fieldnames = ['dueDate', 'callNumber', 'volume']
     writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
     
     writer.writeheader()
     for item in tqdm(sorted_list):
-        writer.writerow(item)
+        printable_item = {
+            'callNumber' : item['callNumber'],
+            'volume' : item['volume'],
+        }
+        if item['status'] == 'Checked out':
+            printable_item['dueDate'] = item['date']
+        else:
+            printable_item['dueDate'] = '-'
+        writer.writerow(printable_item)
 
