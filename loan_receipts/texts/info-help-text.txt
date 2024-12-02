@@ -55,16 +55,14 @@ The tool was developed with the structure of Truman State University's ID card
 system in mind; it remains untested on external IDs and is specifically
 oriented towards use-cases in Pickler Memorial Library and Truman's campus as a
 whole.
-Patron ID numbers for Truman are associated with nine-digit Banner ID numbers,
+Patron ID numbers for Truman are associated with 9-digit Banner ID numbers,
 with the values obtained from the card swipes being "[BANNER ID] + [NUMBER OF
 CARDS ISSUED]". In other words, if Patron Number "123456789" has had an ID card
 issued to them three times, a possible number extracted from their card would
-be the 11-digit number "12345678903". Therefore, the program only takes the
-first nine digits as an input, stripping any trailing digits that go beyond
-nine.
-Changes may be made in the future allowing the Patron ID length to be changed
-by the end user, but currently as of right now this feature has not been
-implemented.
+be the 11-digit number "12345678903". The program will accept the 9-digit
+Banner ID, the 11-digit full card ID, as well as the 14-digit Community
+Borrower ID. The program should accept any barcode in the system, however the
+tool remains untested beyond the scope of the ID numbers listed above.
 
 CREDITS AND CLOSING:
 Developed for use and further development on Windows using Python 3.12+.
@@ -80,5 +78,5 @@ More information can be found by reading the user and developer manuals
 associated with the release.
 
 Text originally published 2024-11-08, v0.0.0.
-Last updated 2024-11-08, v0.0.0.
+Last updated 2024-12-02, v1.2.0.
 Raw ver. info. (for tracking development): Z2l0aHViQGphcS1sYWduaXJhYw==

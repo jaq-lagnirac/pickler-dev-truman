@@ -74,18 +74,15 @@ system in mind; it remains untested on external IDs and is specifically
 oriented towards use-cases in Pickler Memorial Library and Truman's campus as a
 whole.
 
-Patron ID numbers for Truman are associated with nine-digit Banner ID numbers,
+Patron ID numbers for Truman are associated with 9-digit Banner ID numbers,
 with the values obtained from the card swipes being
 `[BANNER ID] + [NUMBER OF CARDS ISSUED]`.
 In other words, if Patron Number `123456789` has had an ID card
 issued to them `three` times, a possible number extracted from their card would
-be the 11-digit number `12345678903`. Therefore, the program only takes the
-first nine digits as an input, stripping any trailing digits that go beyond
-nine.
-
-Changes may be made in the future allowing the Patron ID length to be changed
-by the end user, but currently as of right now this feature has not been
-implemented.
+be the 11-digit number `12345678903`. The program will accept the `9`-digit
+Banner ID, the `11`-digit full card ID, and the `14`-digit Community
+Borrower ID. The program should accept any barcode in the system, however the
+tool remains untested beyond the scope of the ID numbers listed above.
 
 ## Credits and Closing
 
@@ -104,6 +101,6 @@ associated with the release.
 ## Timestamp Details
 
 - **USERMANUAL.md originally published:** 2024-11-12, v0.0.0
-- **USERMANUAL.md last updated:** 2024-11-12, v0.0.0
-- **USERMANUAL.md version:** v1.0
+- **USERMANUAL.md last updated:** 2024-12-02, v1.2.0
+- **USERMANUAL.md version:** v1.1
 - **Raw ver. info. (for tracking development):** Z2l0aHViQGphcS1sYWduaXJhYw==

@@ -687,16 +687,19 @@ def start_printing_process() -> None:
                               key='loans',
                               query=search_query)
 
-    # trims patron ID to acceptable length
+    # trims patron ID to acceptable length (NO LONGER)
     # NOTE: patron IDs for Truman are Banner IDs, the values obtained
     # from card swipes are "BannerID + the number of the card issued",
     # i.e. if patron number 123456789 has had a card issued 3 times, a
     # possible number extracted from their card would be "12345678903".
     # Therefore, we can (hopefully) assume that no matter what input
     # length is, we can trim the patron id to a length == ID_LENGTH
-    PATRON_ID_LENGTH = 9
+    #
+    # NOTE 2024-12-02: Turns out we CANNOT safely assume this---the
+    # system can actually take 9-digit Banner IDs, 11-digit Patron IDs,
+    # 14-digit Community Borrower IDs, and any other length ID that remains
+    # in the system. tl;dr trimming the ID is superfluous
     patron_id = id_input.get()
-    patron_id = patron_id[ : PATRON_ID_LENGTH] # gets first 9 digits of input
 
     # iterates through queries to find matches to patron ID
     update_status(msg='Extracting item information.')
