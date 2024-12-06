@@ -6,6 +6,8 @@
 # Project start date: 2024-12-06
 # Project end date: YYYY-MM-DD
 
+from sys import exit
+import json
 import folioclient
 
 # keys required in config.json
@@ -59,3 +61,22 @@ def login_folioclient() -> folioclient.FolioClient:
         return
 
     return f
+
+import pandas as pd
+
+df = pd.read_csv('test.csv', sep=',')
+print('original df')
+print(df.to_string())
+print(df.columns.to_list())
+print(list(df['two']))
+
+new_cols = ['two1', 'twotest', 'two2']
+df[new_cols] = df['two'].str.split('\"', expand=True)
+print('new df')
+print(df.to_string())
+
+selected_names = ['one'] + new_cols + ['three', 'four', 'five']
+selected_cols = df[selected_names]
+print(selected_cols)
+new_df = selected_cols.copy()
+new_df.to_csv('test-new.csv', index=False)
