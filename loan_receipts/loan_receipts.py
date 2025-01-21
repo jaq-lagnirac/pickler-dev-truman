@@ -32,6 +32,7 @@ DEFAULT_COL = '#000000'
 FONT_TUPLE = ('Verdana', 10)
 LOGO_PATH = os.path.join('images', 'logo-no-background.png')
 HELP_PATH = os.path.join('texts', 'info-help-text.txt')
+SEARCH_WIN_SIZE = 15 # minutes
 
 # keys required in config.json
 REQUIRED_CONFIG_KEYS = {
@@ -482,7 +483,6 @@ def extract_single_query(query : dict,
         item_info['callNumber'] = item['callNumber']
     else:
         item_info['callNumber'] = 'n/a'
-    
     return item_info
 
 
@@ -533,7 +533,7 @@ def center_multiline_text(text : str, width : int) -> str:
 
 
 def format_full_receipt(checked_out_items : list,
-                       time_now : datetime) -> str:
+                        time_now : datetime) -> str:
     """Forwards operations to printer.
     
     A function which formats the extracted checkout items from
@@ -564,7 +564,7 @@ Pickler Memorial Library
 
 {top_loan_date}
 {num_items} item{plural_s()} checked out
-in the last 15 mins.
+in the last {SEARCH_WIN_SIZE} mins.
 
     '''
     centered_header = center_multiline_text(receipt_header, RECEIPT_TEXT_WIDTH)
@@ -667,7 +667,7 @@ def start_printing_process() -> None:
     
     # generates 15-min timeframe for search and comparison
     time_now = datetime.now(timezone.utc) # gets current UTC time
-    search_window = timedelta(minutes=15) # creates 15-min window
+    search_window = timedelta(minutes=SEARCH_WIN_SIZE) # creates time param
     timeframe_start = time_now - search_window # calculates start of search
     iso_timeframe = timeframe_start.isoformat() # converts to ISO 8601
 
@@ -681,11 +681,21 @@ def start_printing_process() -> None:
     # We tried 'borrower.barcode == \"{patron_id}\"', but that didn't work for
     # some reason (probably my own glaring lack of knowledge of CQL). -jaq
     # https://dev.folio.org/reference/api/endpoints/
+    # 
+    # NOTE 2025-01-21: This is just a note for future maintainers, I talked
+    # with some of the FOLIO developers on Slack and as of when-I-asked-them
+    # (about a month ago for a different Pickler project), and they stated that
+    # CQL through the FOLIO API does not support nested queries as of this
+    # moment.
     update_status(msg='Querying FOLIO API.')
     search_query = f'loanDate > \"{iso_timeframe}\" and action == \"checkedout\"'
     queries = f.folio_get_all(path='/circulation/loans',
                               key='loans',
                               query=search_query)
+
+    from pprint import pprint
+    for query in queries:
+        pprint(query)
 
     # trims patron ID to acceptable length (NO LONGER)
     # NOTE: patron IDs for Truman are Banner IDs, the values obtained
