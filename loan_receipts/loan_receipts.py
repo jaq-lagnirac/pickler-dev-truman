@@ -693,10 +693,6 @@ def start_printing_process() -> None:
                               key='loans',
                               query=search_query)
 
-    from pprint import pprint
-    for query in queries:
-        pprint(query)
-
     # trims patron ID to acceptable length (NO LONGER)
     # NOTE: patron IDs for Truman are Banner IDs, the values obtained
     # from card swipes are "BannerID + the number of the card issued",
