@@ -83,6 +83,43 @@ def error_msg(msg : str = 'Unknown error occured.') -> None:
     error.mainloop()
 
 
+def update_validation(*entry : tk.Event) -> bool:
+    """Updates id_validation_msg based off of input.
+    
+    A function which updates a tkinter Label based off of
+    the input to the id_validation_msg Entry.
+
+    Based off of the following StackOverflow forum post:
+    https://stackoverflow.com/a/73126296
+    
+    Args:
+        entry (str): The user-inputted entry, not interacted with
+    
+    Returns:
+        bool: Returns True if patron ID is valid, False otherwise
+    """
+
+    # retrieves input file path from text field
+    file_path = input_filename.get()
+
+    # function validates to ensure file exists
+    is_valid_file = None
+    if os.path.exists(file_path):
+        status.config(text='Valid file path.',
+                      fg=SUCCESS_COL)
+        enter_button.config(state='normal')
+        is_valid_file = True
+    else:
+        status.config(text='File does not exist.',
+                      fg=FAIL_COL)
+        enter_button.config(state='disabled')
+        is_valid_file = False
+
+    # wrap-up statements
+    root.update()
+    return is_valid_file
+
+
 def update_status(*, # requires all arguments to be keyword-only arguments
                   msg : str = '',
                   col : str = DEFAULT_COL,
@@ -290,7 +327,7 @@ if __name__ == '__main__':
                                 column=INPUT_FILE_COLUMN + BUTTON_COUNT,
                                 padx=INPUT_SIDE_PADDING)
     # adds formatting and logic to filename text input
-    filename_str.trace_add('write', lambda*_:print('filename updated'))
+    filename_str.trace_add('write', update_validation)
     
     # bottom rows
     BOTTOM_ROW = 100 # arbitrarily large number
@@ -325,7 +362,7 @@ if __name__ == '__main__':
     cancel_button.grid(sticky='NESW',
                        row=BUTTON_ROW,
                        column=BUTTON_COLUMN_START + 2,
-                       padx=(0, WIDGET_PADDING))
+                       padx=INPUT_SIDE_PADDING)
     
     # bottom credits
     description = tk.Label(root,
