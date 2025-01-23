@@ -14,6 +14,7 @@ import sys
 import tkinter as tk
 from tkinter import filedialog
 import webbrowser as wb
+from pathlib import Path
 import pandas as pd
 from PIL import ImageTk, Image
 
@@ -256,10 +257,20 @@ def find_input_file() -> None:
         # ('Microsoft Excel', '*.xlsx')
     ]
 
+    # chooses where to open file explorer, depending on if
+    # a Downloads folder is detected in the home directory
+    # (possibly a Windows specific thing, but I don't think
+    # anyone is running Linux at Pickler. This is also
+    # specifically for Cassidy)
+    initial_directory = os.curdir # defaults to location where exe is stored
+    downloads_path = os.path.join(Path.home(), 'Downloads')
+    if os.path.exists(downloads_path):
+        initial_directory = downloads_path
+
     # pulls up file explorer
     folder_path = filedialog.askopenfilename(parent=root,
                                              title='Find file - jaq',
-                                             initialdir=os.curdir,
+                                             initialdir=initial_directory,
                                              defaultextension='.csv',
                                              filetypes=ACCEPTED_FILETYPES)
     
