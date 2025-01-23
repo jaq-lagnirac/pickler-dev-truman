@@ -104,7 +104,7 @@ def update_validation(*entry : tk.Event) -> bool:
     file_path = input_filename.get()
 
     # function validates to ensure file exists
-    is_valid_file = None
+    is_valid_file = None # scope resolution
     if os.path.exists(file_path):
         status.config(text='Valid file path.',
                       fg=SUCCESS_COL)
@@ -243,7 +243,8 @@ def find_input_file() -> None:
     """Finds input file.
     
     A function which contains the handling to find the input
-    file which contains the data to be manipulated.
+    file which contains the data to be manipulated. Also will
+    automatically start report generation once file is chosen.
     
     Args:
         None
@@ -263,9 +264,10 @@ def find_input_file() -> None:
     # anyone is running Linux at Pickler. This is also
     # specifically for Cassidy)
     initial_directory = os.curdir # defaults to location where exe is stored
-    downloads_path = os.path.join(Path.home(), 'Downloads')
-    if os.path.exists(downloads_path):
-        initial_directory = downloads_path
+    # downloads_path = os.path.join(Path.home(), 'Downloads')
+    # if os.path.exists(downloads_path):
+    #     initial_directory = downloads_path
+    ### UNCOMMENT ABOVE CODE BEFORE PROD, COMMENTED OUT FOR TESTING
 
     # pulls up file explorer
     folder_path = filedialog.askopenfilename(parent=root,
@@ -277,7 +279,65 @@ def find_input_file() -> None:
     input_filename.delete(0, 'end') # deletes previous text input
     input_filename.insert(0, folder_path) # inputs newly extracted folder path
 
+    start_report_generation()
+
     return
+
+
+def start_report_generation() -> None:
+    """Organizes report generation.
+
+    A function which serves as the "main" function for the primary
+    purpose of the program, that being the extraction and processing
+    of the data exported from FOLIO and the generation of a budget
+    report from that data
+    
+    Args:
+        None
+    
+    Returns:
+        None
+    """
+
+    # prevents future inputs
+    update_status(msg='Beginning report generation. Checking column names.',
+                  enter_state='disabled')
+
+    filename = input_filename.get()
+
+    # checks to see if input file is formatted correctly
+    COLUMN_TO_BE_SPLIT = 'Invoice line fund distributions'
+    raw_df = pd.read_csv(filename)
+    if COLUMN_TO_BE_SPLIT not in raw_df:
+        update_status(msg=f'Column \"{COLUMN_TO_BE_SPLIT}\" not detected.',
+                      col=FAIL_COL,
+                      enter_state='normal')
+        return
+    
+    # splits column into component parts
+    update_status(msg=f'\"{COLUMN_TO_BE_SPLIT}\" found, splitting column.')
+    # removes leading and trailing quotation marks
+    cleaned_column = raw_df[COLUMN_TO_BE_SPLIT].str.strip('\"')
+    split_columns = cleaned_column.str.split('\"\"', expand=True)
+    NEW_COLUMN_NAMES = {
+        0 : 'Code',
+        1 : 'Title',
+        2 : 'Percentage Used',
+        3 : 'Cost',
+    }
+    renamed_columns = None # scope resolution
+    try:
+        renamed_columns = split_columns.rename(columns=NEW_COLUMN_NAMES,
+                                               errors='raise')
+    except KeyError as e:
+        update_status(msg='More columns than expected.',
+                      col=FAIL_COL,
+                      enter_state='normal')
+        error_msg('More columns than expected.\n' \
+                  f'See \"{COLUMN_TO_BE_SPLIT}\" in\n' \
+                  f'\"{filename}\" to debug.\n\n{e}')
+        return
+    print(renamed_columns)
 
 
 # Justin Caringal, TSU, BSCS 2025, github@jaq-lagnirac
@@ -329,7 +389,7 @@ if __name__ == '__main__':
                         row=INPUT_FILE_ROW,
                         column=INPUT_FILE_COLUMN + 1,
                         columnspan=BUTTON_COUNT - 1)
-    # opens file explorer
+    # opens file explorer, starts report generation
     find_input_file_button = tk.Button(root,
                                        text='Find file...',
                                        command=find_input_file)
@@ -339,6 +399,10 @@ if __name__ == '__main__':
                                 padx=INPUT_SIDE_PADDING)
     # adds formatting and logic to filename text input
     filename_str.trace_add('write', update_validation)
+    # adds Enter/Return in the filename input as an option to start program
+    validate_and_start = lambda *_ : start_report_generation() \
+        if update_validation() else None
+    input_filename.bind('<Return>', validate_and_start)
     
     # bottom rows
     BOTTOM_ROW = 100 # arbitrarily large number
@@ -356,7 +420,7 @@ if __name__ == '__main__':
     # NOTE: sticky='NESW' used to fill box to fit column and row
     enter_button = tk.Button(root,
                              text='Enter',
-                             command=lambda:print('budget report function'))
+                             command=start_report_generation)
     enter_button.grid(sticky='NESW',
                       row=BUTTON_ROW,
                       column=BUTTON_COLUMN_START)
