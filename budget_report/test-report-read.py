@@ -20,3 +20,9 @@ folder_path = filedialog.askopenfilename(title='Find file - jaq',
                                          filetypes=ACCEPTED_FILETYPES)
 
 print(folder_path)
+
+print(os.curdir, os.getcwd())
+
+from pathlib import Path
+downloads_path = os.path.join(Path.home(), 'Downloads')
+print(downloads_path)
