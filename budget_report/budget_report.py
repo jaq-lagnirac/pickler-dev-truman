@@ -284,6 +284,131 @@ def find_input_file() -> None:
     return
 
 
+def extract_data_from_csv(filename : str) -> pd.DataFrame:
+    """Extracts columns of data.
+
+    A function which: 
+        1)  Ensures requisite data columns are present.
+        2)  Once confirmed, splits up the needed columns and
+            returns only the needed columns to the rest of
+            the program for further processing.
+
+    Args:
+        filename (str): The path to the CSV file exported from FOLIO
+
+    Returns:
+        pd.DataFrame: Returns a DataFrame with the extracted columns,
+            or an empty DataFrame if an error occurs
+    """
+
+    # checks to see if input file is formatted correctly
+    raw_df = pd.read_csv(filename)
+
+    # checks total column
+    COST_COLUMN_NAME = 'Total'
+    if not COST_COLUMN_NAME in raw_df.columns:
+        update_status(msg=f'Column \"{COST_COLUMN_NAME}\" not detected.',
+                      col=FAIL_COL,
+                      enter_state='normal')
+        return pd.DataFrame()
+    cost_column = raw_df[COST_COLUMN_NAME]
+    
+    # checks long column
+    COLUMN_TO_BE_SPLIT = 'Invoice line fund distributions'
+    if not COLUMN_TO_BE_SPLIT in raw_df.columns:
+        update_status(msg=f'Column \"{COLUMN_TO_BE_SPLIT}\" not detected.',
+                      col=FAIL_COL,
+                      enter_state='normal')
+        return pd.DataFrame()
+    
+    # splits column into component parts
+    update_status(msg=f'\"{COLUMN_TO_BE_SPLIT}\" found, splitting column.')
+    # removes leading and trailing quotation marks
+    cleaned_column = raw_df[COLUMN_TO_BE_SPLIT].str.strip('\"')
+    # takes extracted column and splits along double quotes
+    split_columns = cleaned_column.str.split('\"\"', expand=True)
+    
+    # renames indexed columns to new column names
+    NEW_COLUMN_NAMES = {
+        0 : 'Code',
+        1 : 'Title',
+        2 : 'Percentage Used',
+        3 : 'Cost',
+    }
+    renamed_columns = None # scope resolution
+    try:
+        renamed_columns = split_columns.rename(columns=NEW_COLUMN_NAMES,
+                                              errors='raise')
+    except KeyError as e:
+        update_status(msg='More columns than expected.',
+                      col=FAIL_COL,
+                      enter_state='normal')
+        error_msg('More columns than expected.\n' \
+                  f'See \"{COLUMN_TO_BE_SPLIT}\" in\n' \
+                  f'\"{filename}\" to debug.\n\n{e}')
+        return pd.DataFrame()
+
+    # joins total column with split columns
+    merged_df = pd.concat([renamed_columns, cost_column], axis=1)
+    
+    # fills NaN with empty string
+    filled_df = merged_df.fillna('')
+    return filled_df
+
+
+def summarize_data(dataframe : pd.DataFrame) -> dict:
+    """Sums together costs of titles.
+    
+    A function which takes the values in the Cost column and
+    sums them together by the Title.
+    
+    Args:
+        dataframe (pd.DataFrame): The extracted columns from the
+            raw CSV
+        
+    Returns:
+        dict: Returns a dictionary of Cost sums with Title as the
+            keys
+    """
+
+    # initializes empty dict to which the sums will be collected
+    cost_sums = {}
+
+    # iterates through each row and sums Cost by Title
+    # NOTE: you shouldn't have to check for the existence of the
+    # columns because the program will have stopped before then
+    # I may add in another check here if I have time or if the need
+    # arises but for right now it should be relatively safe to ignore
+    from decimal import Decimal # move up to top once working
+    for index, row in dataframe.iterrows():
+        # unpacks Title
+        title = None # scope resolution
+        if row['Title']: # if Title blank
+            title = row['Title']
+        else:
+            title = 'Miscellaneous'
+
+        try:
+            # must convert to string first to preserve decimal places
+            cost = Decimal(str(row['Total']))
+        except:
+            print('ERROR', index) # triggers at 599, blank Title and Total
+        
+        # adds to sum, or starts sum if not present
+        if title in cost_sums.keys():
+            cost_sums[title] += cost # adds to running total
+        else: # title not in dictionary
+            cost_sums[title] = cost # initializes key
+            print(index, title) ### REMOVE TEST
+
+        # if index == 548: ### REMOVE TEST
+            # print(row)
+            # print(cost_sums)
+            # sys.exit()
+
+    return cost_sums
+
+
 def start_report_generation() -> None:
     """Organizes report generation.
 
@@ -303,41 +428,28 @@ def start_report_generation() -> None:
     update_status(msg='Beginning report generation. Checking column names.',
                   enter_state='disabled')
 
-    filename = input_filename.get()
 
-    # checks to see if input file is formatted correctly
-    COLUMN_TO_BE_SPLIT = 'Invoice line fund distributions'
-    raw_df = pd.read_csv(filename)
-    if COLUMN_TO_BE_SPLIT not in raw_df:
-        update_status(msg=f'Column \"{COLUMN_TO_BE_SPLIT}\" not detected.',
-                      col=FAIL_COL,
-                      enter_state='normal')
+    # validates column, then splits into separate columns
+    filename = input_filename.get()
+    budget_df = extract_data_from_csv(filename)
+    if budget_df.empty:
+        # specific message found in above function
+        update_status(enter_state='normal') # ensures successive uses
         return
     
-    # splits column into component parts
-    update_status(msg=f'\"{COLUMN_TO_BE_SPLIT}\" found, splitting column.')
-    # removes leading and trailing quotation marks
-    cleaned_column = raw_df[COLUMN_TO_BE_SPLIT].str.strip('\"')
-    split_columns = cleaned_column.str.split('\"\"', expand=True)
-    NEW_COLUMN_NAMES = {
-        0 : 'Code',
-        1 : 'Title',
-        2 : 'Percentage Used',
-        3 : 'Cost',
-    }
-    renamed_columns = None # scope resolution
-    try:
-        renamed_columns = split_columns.rename(columns=NEW_COLUMN_NAMES,
-                                               errors='raise')
-    except KeyError as e:
-        update_status(msg='More columns than expected.',
-                      col=FAIL_COL,
-                      enter_state='normal')
-        error_msg('More columns than expected.\n' \
-                  f'See \"{COLUMN_TO_BE_SPLIT}\" in\n' \
-                  f'\"{filename}\" to debug.\n\n{e}')
-        return
-    print(renamed_columns)
+    budget_df.to_csv('debug.csv', index=True)
+    
+    # extracts and summarizes information into a dictionary
+    cost_sums = summarize_data(budget_df)
+    for key, value in cost_sums.items():
+        print(f'{key:<25}{value:>10}')
+    
+    print(sum(cost_sums.values()))
+
+    update_status(msg='[PLACEHOLDER: PROGRAM COMPLETE]',
+                  col=SUCCESS_COL,
+                  enter_state='normal')
+    return
 
 
 # Justin Caringal, TSU, BSCS 2025, github@jaq-lagnirac
