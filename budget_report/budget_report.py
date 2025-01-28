@@ -15,8 +15,11 @@ import tkinter as tk
 from tkinter import filedialog
 import webbrowser as wb
 from pathlib import Path
+from decimal import Decimal
+from datetime import datetime
 import pandas as pd
 from PIL import ImageTk, Image
+from tkcalendar import Calendar
 
 
 ### GLOBAL CONSTANTS / VARIABLES ###
@@ -28,6 +31,8 @@ DEFAULT_COL = '#000000'
 FONT_TUPLE = ('Verdana', 10)
 LOGO_PATH = os.path.join('images', 'logo-no-background.png')
 HELP_PATH = os.path.join('texts', 'info-help-text.txt')
+CALENDAR_DATE_FORMAT = 'yyyy-mm-dd'
+DATETIME_FORMAT = '%Y-%m-%d'
 
 
 ### FUNCTIONS ###
@@ -284,6 +289,30 @@ def find_input_file() -> None:
     return
 
 
+def column_exists(column_name : str, df : pd.DataFrame) -> bool:
+    """Checks for a column's existence.
+    
+    A function which checks for the existence of a column
+    within a Pandas DataFrame and returns a boolean value
+    on if it exists and updates the status message.
+    
+    Args:
+        column_name (str): The name of the column to check for
+        df (pd.DataFrame): The dataframe in which to check
+        
+    Returns:
+        bool: Returns True if the column exists in the dataframe,
+            False otherwise
+    """
+    if not column_name in df.columns:
+        update_status(msg=f'Column \"{column_name}\" not detected.',
+                      col=FAIL_COL,
+                      enter_state='normal')
+        return False
+    update_status(msg=f'{column_name} found.')
+    return True
+
+
 def extract_data_from_csv(filename : str) -> pd.DataFrame:
     """Extracts columns of data.
 
@@ -306,20 +335,24 @@ def extract_data_from_csv(filename : str) -> pd.DataFrame:
 
     # checks total column
     COST_COLUMN_NAME = 'Total'
-    if not COST_COLUMN_NAME in raw_df.columns:
-        update_status(msg=f'Column \"{COST_COLUMN_NAME}\" not detected.',
-                      col=FAIL_COL,
-                      enter_state='normal')
-        return pd.DataFrame()
+    if not column_exists(COST_COLUMN_NAME, raw_df):
+        return pd.DataFrame() # prematurely returns empty df
     cost_column = raw_df[COST_COLUMN_NAME]
+
+    # checks date column
+    DATE_COLUMN_NAME = 'Payment date'
+    if not column_exists(DATE_COLUMN_NAME, raw_df):
+        return pd.DataFrame() # prematurely returns empty df
+    # lambda function to convert us MM/DD/YYYY to Python datetime object
+    convert_us_to_dt = lambda us_date : datetime.strptime(us_date, '%m/%d/%Y')
+    # applies lambda over date column
+    date_column = raw_df[DATE_COLUMN_NAME].apply(convert_us_to_dt)
+
     
     # checks long column
     COLUMN_TO_BE_SPLIT = 'Invoice line fund distributions'
-    if not COLUMN_TO_BE_SPLIT in raw_df.columns:
-        update_status(msg=f'Column \"{COLUMN_TO_BE_SPLIT}\" not detected.',
-                      col=FAIL_COL,
-                      enter_state='normal')
-        return pd.DataFrame()
+    if not column_exists(COLUMN_TO_BE_SPLIT, raw_df):
+        return pd.DataFrame() # prematurely returns empty df
     
     # splits column into component parts
     update_status(msg=f'\"{COLUMN_TO_BE_SPLIT}\" found, splitting column.')
@@ -349,14 +382,15 @@ def extract_data_from_csv(filename : str) -> pd.DataFrame:
         return pd.DataFrame()
 
     # joins total column with split columns
-    merged_df = pd.concat([renamed_columns, cost_column], axis=1)
+    merged_df = pd.concat([date_column, renamed_columns, cost_column], axis=1)
     
-    # fills NaN with empty string
+    # fills NaN with empty string, allows the rest of
+    # the program to process exceptions and empty strings
     filled_df = merged_df.fillna('')
     return filled_df
 
 
-def summarize_data(dataframe : pd.DataFrame) -> dict:
+def sum_costs(dataframe : pd.DataFrame) -> tuple[dict, dict]:
     """Sums together costs of titles.
     
     A function which takes the values in the Cost column and
@@ -367,46 +401,62 @@ def summarize_data(dataframe : pd.DataFrame) -> dict:
             raw CSV
         
     Returns:
-        dict: Returns a dictionary of Cost sums with Title as the
-            keys
+        tuple[dict, dict]: Returns two dictionaries with Cost sums
+            broken down by Title, one with YTD expenditures and one
+            with "current" expenditures for the past month
     """
 
-    # initializes empty dict to which the sums will be collected
-    cost_sums = {}
+    # initializes empty dict in which the sums will be collected
+    ytd_cost_sums = {}
+    current_cost_sums = {}
 
     # iterates through each row and sums Cost by Title
     # NOTE: you shouldn't have to check for the existence of the
     # columns because the program will have stopped before then
     # I may add in another check here if I have time or if the need
     # arises but for right now it should be relatively safe to ignore
-    from decimal import Decimal # move up to top once working
-    for index, row in dataframe.iterrows():
-        # unpacks Title
-        title = None # scope resolution
-        if row['Title']: # if Title blank
-            title = row['Title']
-        else:
-            title = 'Miscellaneous'
-
-        try:
-            # must convert to string first to preserve decimal places
-            cost = Decimal(str(row['Total']))
-        except:
-            print('ERROR', index) # triggers at 599, blank Title and Total
+    for _, row in dataframe.iterrows():
         
+        ### UNPACKING INFORMATION
+
+        # checks for existence of Cost
+        if not row['Total']: # if no cost associated with row (i.e. empty)
+            continue # then skip to next row
+        # must convert to string first to preserve decimal places
+        cost = Decimal(str(row['Total']))
+
+        # unpacks Title
+        title = 'Miscellaneous' # scope resolution, default case
+        if row['Title']: # if Title not blank
+            title = row['Title']
+        
+        ### YTD EXPENDITURES
+
         # adds to sum, or starts sum if not present
-        if title in cost_sums.keys():
-            cost_sums[title] += cost # adds to running total
+        if title in ytd_cost_sums.keys():
+            ytd_cost_sums[title] += cost # adds to running total
         else: # title not in dictionary
-            cost_sums[title] = cost # initializes key
-            print(index, title) ### REMOVE TEST
+            ytd_cost_sums[title] = cost # initializes key and value
 
-        # if index == 548: ### REMOVE TEST
-            # print(row)
-            # print(cost_sums)
-            # sys.exit()
+        ### CURRENT EXPENDITURES
+        
+        cutoff_date = datetime.strptime(calendar.get_date(), DATETIME_FORMAT)
+        if row['Payment date'] < cutoff_date: # if payment date is before cutoff
+            continue # then continue to next iteration
 
-    return cost_sums
+        # if payment date is after cutoff, proceed to the following
+        if title in current_cost_sums.keys():
+            current_cost_sums[title] += cost # adds to running total
+        else: # title not in dictionary
+            current_cost_sums[title] = cost # initializes key and value
+
+    return (ytd_cost_sums, current_cost_sums)
+
+
+def generate_xlsx_report(filename : str, cost_sums : dict) -> None:
+    """Generates budget report as an XLSX file
+    
+    A function which takes the summed costs from the raw file"""
 
 
 def start_report_generation() -> None:
@@ -440,7 +490,7 @@ def start_report_generation() -> None:
     budget_df.to_csv('debug.csv', index=True)
     
     # extracts and summarizes information into a dictionary
-    cost_sums = summarize_data(budget_df)
+    cost_sums = sum_costs(budget_df)
     for key, value in cost_sums.items():
         print(f'{key:<25}{value:>10}')
     
@@ -483,7 +533,7 @@ if __name__ == '__main__':
                                     padx=SYMMETRICAL_PADDING,
                                     pady=SYMMETRICAL_PADDING)
     
-    # requests name of printer
+    # requests name of input file
     INPUT_FILE_ROW = IMAGE_ROW + 1
     INPUT_FILE_COLUMN = IMAGE_COLUMN
     input_file_txt = tk.Label(root,
@@ -515,6 +565,26 @@ if __name__ == '__main__':
     validate_and_start = lambda *_ : start_report_generation() \
         if update_validation() else None
     input_filename.bind('<Return>', validate_and_start)
+
+    # requests cutoff day for expenditures
+    DATE_ROW = INPUT_FILE_ROW + 1
+    DATE_COLUMN = INPUT_FILE_COLUMN
+    date_txt = tk.Label(root,
+                        text='Cutoff date for ' \
+                          '\"Current Expenditures\":',
+                        font=FONT_TUPLE)
+    date_txt.grid(sticky='W',
+                  row=DATE_ROW,
+                  column=DATE_COLUMN,
+                  padx=TEXT_SIDE_PADDING)
+    calendar = Calendar(root,
+                        selectmode = 'day',
+                        date_pattern = CALENDAR_DATE_FORMAT)
+    calendar.grid(sticky='NESW',
+                  row=DATE_ROW,
+                  column=DATE_COLUMN + 1,
+                  columnspan=1,
+                  pady = (10, 0))
     
     # bottom rows
     BOTTOM_ROW = 100 # arbitrarily large number
