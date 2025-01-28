@@ -20,6 +20,7 @@ from datetime import datetime
 import pandas as pd
 from PIL import ImageTk, Image
 from tkcalendar import Calendar
+import xlsxwriter
 
 
 ### GLOBAL CONSTANTS / VARIABLES ###
@@ -33,6 +34,7 @@ LOGO_PATH = os.path.join('images', 'logo-no-background.png')
 HELP_PATH = os.path.join('texts', 'info-help-text.txt')
 CALENDAR_DATE_FORMAT = 'yyyy-mm-dd'
 DATETIME_FORMAT = '%Y-%m-%d'
+DATE_CUTOFF_COLUMN_NAME = 'Invoice date'
 
 
 ### FUNCTIONS ###
@@ -107,20 +109,23 @@ def update_validation(*entry : tk.Event) -> bool:
 
     # retrieves input file path from text field
     file_path = input_filename.get()
+    _, extension = os.path.splitext(file_path)
 
     # function validates to ensure file exists
-    is_valid_file = None # scope resolution
-    if os.path.exists(file_path):
+    is_valid_file = False # scope resolution, base case
+    enter_button.config(state='disabled')
+    if not os.path.exists(file_path):
+        status.config(text='File does not exist.',
+                      fg=FAIL_COL)
+    elif extension != '.csv':
+        status.config(text='File exists, but is not a CSV file.',
+                      fg=FAIL_COL)
+    else:
         status.config(text='Valid file path.',
                       fg=SUCCESS_COL)
         enter_button.config(state='normal')
         is_valid_file = True
-    else:
-        status.config(text='File does not exist.',
-                      fg=FAIL_COL)
-        enter_button.config(state='disabled')
-        is_valid_file = False
-
+        
     # wrap-up statements
     root.update()
     return is_valid_file
@@ -284,7 +289,9 @@ def find_input_file() -> None:
     input_filename.delete(0, 'end') # deletes previous text input
     input_filename.insert(0, folder_path) # inputs newly extracted folder path
 
-    start_report_generation()
+    # if user closes out of filedialog prematurely, then folder_path = ''
+    if folder_path:
+        start_report_generation()
 
     return
 
@@ -340,14 +347,13 @@ def extract_data_from_csv(filename : str) -> pd.DataFrame:
     cost_column = raw_df[COST_COLUMN_NAME]
 
     # checks date column
-    DATE_COLUMN_NAME = 'Payment date'
+    DATE_COLUMN_NAME = DATE_CUTOFF_COLUMN_NAME
     if not column_exists(DATE_COLUMN_NAME, raw_df):
         return pd.DataFrame() # prematurely returns empty df
     # lambda function to convert us MM/DD/YYYY to Python datetime object
     convert_us_to_dt = lambda us_date : datetime.strptime(us_date, '%m/%d/%Y')
     # applies lambda over date column
     date_column = raw_df[DATE_COLUMN_NAME].apply(convert_us_to_dt)
-
     
     # checks long column
     COLUMN_TO_BE_SPLIT = 'Invoice line fund distributions'
@@ -441,7 +447,8 @@ def sum_costs(dataframe : pd.DataFrame) -> tuple[dict, dict]:
         ### CURRENT EXPENDITURES
         
         cutoff_date = datetime.strptime(calendar.get_date(), DATETIME_FORMAT)
-        if row['Payment date'] < cutoff_date: # if payment date is before cutoff
+        # if payment date is before cutoff
+        if row[DATE_CUTOFF_COLUMN_NAME] < cutoff_date:
             continue # then continue to next iteration
 
         # if payment date is after cutoff, proceed to the following
@@ -449,14 +456,58 @@ def sum_costs(dataframe : pd.DataFrame) -> tuple[dict, dict]:
             current_cost_sums[title] += cost # adds to running total
         else: # title not in dictionary
             current_cost_sums[title] = cost # initializes key and value
+    
+    # finds complement of subset (ytd keys missing from current)
+    # i.e. finds keys found in YTD costs dict and not in current costs dict
+    missing_keys = set(ytd_cost_sums.keys()) - set(current_cost_sums.keys())
+
+    # fills in missing gaps to prevent KeyError during XLSX creation
+    for key in missing_keys:
+        current_cost_sums[key] = 0.0
 
     return (ytd_cost_sums, current_cost_sums)
 
 
-def generate_xlsx_report(filename : str, cost_sums : dict) -> None:
+def generate_xlsx_report(file_path : str,
+                         ytd_cost_sums : dict,
+                         current_cost_sums : dict) -> None:
     """Generates budget report as an XLSX file
     
-    A function which takes the summed costs from the raw file"""
+    A function which takes the summed costs from the raw file
+    and formats and outputs it onto an XLSX file
+    
+    Args:
+        file_path (str): the name of the original exported CSV
+        ytd_cost_sums (str): dict containing YTD expenditures
+        current_cost_sums (str): dict containing current monthly expenditures
+    
+    Returns:
+        None
+    """
+
+    # creates output filename
+    filename = os.path.basename(file_path)
+    basename, _ = os.path.splitext(filename)
+    output_filename = f'REPORT_{basename}-jaq.xlsx'
+
+    # initializes workbook, sets up worksheet
+    workbook = xlsxwriter.Workbook(output_filename)
+    worksheet = workbook.add_worksheet()
+    header_text = f'REPORT - CUTOFF DATE: {calendar.get_date()}'
+    header_format = workbook.add_format(
+        {
+            'bold' : 1,
+            'align' : 'center',
+        }
+    )
+    worksheet.merge_range('A1:F1', '')
+    worksheet.merge_range('A2:F2', header_text, header_format)
+
+    # orders keys to be displayed in alphabetical order
+    sorted_keys = sorted(ytd_cost_sums.keys())
+
+    workbook.close()
+    return
 
 
 def start_report_generation() -> None:
@@ -487,14 +538,19 @@ def start_report_generation() -> None:
         update_status(enter_state='normal') # ensures successive uses
         return
     
-    budget_df.to_csv('debug.csv', index=True)
+    budget_df.to_csv('debug.csv', index=True) ### REMOVE BEFORE PROD
     
     # extracts and summarizes information into a dictionary
-    cost_sums = sum_costs(budget_df)
-    for key, value in cost_sums.items():
+    ytd_cost_sums, current_cost_sums = sum_costs(budget_df)
+    for key, value in ytd_cost_sums.items():
         print(f'{key:<25}{value:>10}')
-    
-    print(sum(cost_sums.values()))
+    for key, value in current_cost_sums.items():
+        print(f'{key:<25}{value:>10}')
+
+    # generates report for xlsx table
+    generate_xlsx_report(filename,
+                         ytd_cost_sums,
+                         current_cost_sums)
 
     update_status(msg='[PLACEHOLDER: PROGRAM COMPLETE]',
                   col=SUCCESS_COL,
