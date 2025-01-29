@@ -263,23 +263,21 @@ def find_input_file() -> None:
         None
     """
 
-    ACCEPTED_FILETYPES = [
-        ('Comma-separated values', '*.csv'),
-        # ('Microsoft Excel', '*.xlsx')
-    ]
-
     # chooses where to open file explorer, depending on if
     # a Downloads folder is detected in the home directory
     # (possibly a Windows specific thing, but I don't think
     # anyone is running Linux at Pickler. This is also
     # specifically for Cassidy)
     initial_directory = os.curdir # defaults to location where exe is stored
-    # downloads_path = os.path.join(Path.home(), 'Downloads')
-    # if os.path.exists(downloads_path):
-    #     initial_directory = downloads_path
-    ### UNCOMMENT ABOVE CODE BEFORE PROD, COMMENTED OUT FOR TESTING
+    downloads_path = os.path.join(Path.home(), 'Downloads')
+    if os.path.exists(downloads_path):
+        initial_directory = downloads_path
 
     # pulls up file explorer
+    ACCEPTED_FILETYPES = [
+        ('Comma-separated values', '*.csv'),
+        # ('Microsoft Excel', '*.xlsx')
+    ]
     folder_path = filedialog.askopenfilename(parent=root,
                                              title='Find file - jaq',
                                              initialdir=initial_directory,
@@ -513,6 +511,7 @@ def generate_xlsx_report(file_path : str,
                         COLUMN_NAMES,
                         COLUMN_HEADER_FORMAT)
     
+    ### FORMATS BULK OF TABLE
     # sorts keys to be displayed in alphabetical
     # order, adds buffer to keys
     BUFFER_STR = ''
@@ -530,6 +529,8 @@ def generate_xlsx_report(file_path : str,
             'num_format' : '$#,##0.00',
         }
     )
+    
+    ### FILLS OUT BULK OF TABLE
     for index, subfund in enumerate(sorted_keys):
 
         # calculates current working row
@@ -567,7 +568,7 @@ def generate_xlsx_report(file_path : str,
     
     ### TOTALS ROW
     # formats and prints column totals
-    totals_row = START_ROW + len(sorted_keys) # calculates sum row placement
+    TOTALS_ROW = START_ROW + len(sorted_keys) # calculates sum row placement
     TOTALS_FORMAT = workbook.add_format(
         {
             'bold' : 1,
@@ -575,17 +576,29 @@ def generate_xlsx_report(file_path : str,
             'num_format' : '$#,##0.00',
         }
     )
-    worksheet.write(f'A{totals_row}',
+    worksheet.write(f'A{TOTALS_ROW}',
                     'TOTALS',
                     TOTALS_FORMAT)
     TOTALS_COLUMN_NAMES = 'BCDEF'
     # TOTALS_FORMAT.set_num_format('$#,##0.00') # adds num_format to sum row
     for column in TOTALS_COLUMN_NAMES:
-        totals_formula = f'=SUM({column}{START_ROW}:{column}{totals_row - 1})'
-        worksheet.write_formula(f'{column}{totals_row}',
+        totals_formula = f'=SUM({column}{START_ROW}:{column}{TOTALS_ROW - 1})'
+        worksheet.write_formula(f'{column}{TOTALS_ROW}',
                                 totals_formula,
                                 TOTALS_FORMAT)
     
+    ### ADDS CONDITIONAL FORMATTING
+    currency_range = f'B{START_ROW}:F{TOTALS_ROW}'
+    RED_FORMAT = workbook.add_format({'bg_color' : '#f4cccc'}) # light red 3
+    GREEN_FORMAT = workbook.add_format({'bg_color' : '#d9ead3'}) # light green 3
+    worksheet.conditional_format(currency_range, {'type' : 'cell',
+                                                  'criteria' : 'less than',
+                                                  'value' : 0,
+                                                  'format' : RED_FORMAT})
+    worksheet.conditional_format(currency_range, {'type' : 'cell',
+                                                  'criteria' : 'greater than',
+                                                  'value' : 0,
+                                                  'format' : GREEN_FORMAT})
     
     worksheet.autofit() # reformats cell width
 
@@ -637,9 +650,7 @@ def start_report_generation() -> None:
         # specific message found in above function
         update_status(enter_state='normal') # ensures successive uses
         return
-    
-    budget_df.to_csv('debug.csv', index=True) ### REMOVE BEFORE PROD
-    
+        
     # extracts and summarizes information into a dictionary
     ytd_cost_sums, current_cost_sums = sum_costs(budget_df)
     # for key, value in ytd_cost_sums.items():
