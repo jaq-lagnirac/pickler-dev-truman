@@ -470,7 +470,7 @@ def sum_costs(dataframe : pd.DataFrame) -> tuple[dict, dict]:
 
 def generate_xlsx_report(file_path : str,
                          ytd_cost_sums : dict,
-                         current_cost_sums : dict) -> None:
+                         current_cost_sums : dict) -> str:
     """Generates budget report as an XLSX file
     
     A function which takes the summed costs from the raw file
@@ -482,7 +482,7 @@ def generate_xlsx_report(file_path : str,
         current_cost_sums (str): dict containing current monthly expenditures
     
     Returns:
-        None
+        str: Returns the name of the output XLSX file.
     """
 
     # creates output filename
@@ -490,21 +490,121 @@ def generate_xlsx_report(file_path : str,
     basename, _ = os.path.splitext(filename)
     output_filename = f'REPORT_{basename}-jaq.xlsx'
 
-    # initializes workbook, sets up worksheet
+    # initializes workbook
     workbook = xlsxwriter.Workbook(output_filename)
     worksheet = workbook.add_worksheet()
-    header_text = f'REPORT - CUTOFF DATE: {calendar.get_date()}'
-    header_format = workbook.add_format(
+
+    # sets column headers
+    COLUMN_NAMES = [
+        'SUBFUND',
+        'APPROPRIATION',
+        'CURRENT EXPENDITURES',
+        'YTD EXPENDITURES',
+        'ENCUMBRANCES',
+        'FREE BALANCE',
+    ]
+    COLUMN_HEADER_FORMAT = workbook.add_format(
+        {
+            'bold' : 1,
+            'italic' : 1,    
+        }
+    )
+    worksheet.write_row('A3',
+                        COLUMN_NAMES,
+                        COLUMN_HEADER_FORMAT)
+    
+    # sorts keys to be displayed in alphabetical
+    # order, adds buffer to keys
+    BUFFER_STR = ''
+    SUMS_BUFFER_SPACES = 3
+    sorted_keys = sorted(ytd_cost_sums.keys()) + \
+        [BUFFER_STR] * SUMS_BUFFER_SPACES
+    START_ROW = 4 # A1 notation row that cost sums start being printed on
+    SUBFUND_FORMAT = workbook.add_format(
+        {
+            'italic' : 1,    
+        }
+    )
+    CURRENCY_FORMAT = workbook.add_format(
+        {
+            'num_format' : '$#,##0.00',
+        }
+    )
+    for index, subfund in enumerate(sorted_keys):
+
+        # calculates current working row
+        row = START_ROW + index
+
+        # prevents KeyError from dicts
+        current_expenditures = 0
+        ytd_expenditures = 0
+        if subfund != BUFFER_STR:
+            current_expenditures = current_cost_sums[subfund]
+            ytd_expenditures = ytd_cost_sums[subfund]
+
+        # fills out table
+        APPROPRIATION_DEFAULT = 0
+        ENCUMBRANCE_DEFAULT = 0
+        worksheet.write(f'A{row}',
+                        subfund,
+                        SUBFUND_FORMAT)
+        worksheet.write(f'B{row}',
+                        APPROPRIATION_DEFAULT,
+                        CURRENCY_FORMAT)
+        worksheet.write(f'C{row}',
+                        current_expenditures,
+                        CURRENCY_FORMAT)
+        worksheet.write(f'D{row}',
+                        ytd_expenditures,
+                        CURRENCY_FORMAT)
+        worksheet.write(f'E{row}',
+                        ENCUMBRANCE_DEFAULT,
+                        CURRENCY_FORMAT)
+        # writes FREE BALANCE formula in required column
+        worksheet.write_formula(f'F{row}',
+                                f'=B{row}-D{row}-E{row}',
+                                CURRENCY_FORMAT)
+    
+    ### TOTALS ROW
+    # formats and prints column totals
+    totals_row = START_ROW + len(sorted_keys) # calculates sum row placement
+    TOTALS_FORMAT = workbook.add_format(
+        {
+            'bold' : 1,
+            'top' : 6, # Index: 6, Name: Double; Weight: 3; Style: =====
+            'num_format' : '$#,##0.00',
+        }
+    )
+    worksheet.write(f'A{totals_row}',
+                    'TOTALS',
+                    TOTALS_FORMAT)
+    TOTALS_COLUMN_NAMES = 'BCDEF'
+    # TOTALS_FORMAT.set_num_format('$#,##0.00') # adds num_format to sum row
+    for column in TOTALS_COLUMN_NAMES:
+        totals_formula = f'=SUM({column}{START_ROW}:{column}{totals_row - 1})'
+        worksheet.write_formula(f'{column}{totals_row}',
+                                totals_formula,
+                                TOTALS_FORMAT)
+    
+    
+    worksheet.autofit() # reformats cell width
+
+
+    # sets up worksheet headers
+    # NOTE:worksheet headers must come after rest of table (and
+    # specifically autofit) because autofitting to a merged cell
+    # is wonky and doesn't really work, at least under my current
+    # understanding of how the autofit function works
+    HEADER_TEXT = f'REPORT - CUTOFF DATE: {calendar.get_date()}'
+    HEADER_FORMAT = workbook.add_format(
         {
             'bold' : 1,
             'align' : 'center',
+            'bottom' : 6, # Index: 6, Name: Double; Weight: 3; Style: =====
         }
     )
     worksheet.merge_range('A1:F1', '')
-    worksheet.merge_range('A2:F2', header_text, header_format)
-
-    # orders keys to be displayed in alphabetical order
-    sorted_keys = sorted(ytd_cost_sums.keys())
+    worksheet.merge_range('A2:F2', HEADER_TEXT, HEADER_FORMAT)
 
     workbook.close()
     return
@@ -542,10 +642,10 @@ def start_report_generation() -> None:
     
     # extracts and summarizes information into a dictionary
     ytd_cost_sums, current_cost_sums = sum_costs(budget_df)
-    for key, value in ytd_cost_sums.items():
-        print(f'{key:<25}{value:>10}')
-    for key, value in current_cost_sums.items():
-        print(f'{key:<25}{value:>10}')
+    # for key, value in ytd_cost_sums.items():
+    #     print(f'{key:<25}{value:>10}')
+    # for key, value in current_cost_sums.items():
+    #     print(f'{key:<25}{value:>10}')
 
     # generates report for xlsx table
     generate_xlsx_report(filename,
