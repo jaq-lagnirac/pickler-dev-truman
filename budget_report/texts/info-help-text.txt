@@ -1,0 +1,76 @@
+Welcome to Folio Budget Report!
+
+This document aims to help guide an end-user in the daily or regular use of
+this tool. Please feel free to reach out if you have any questions.
+
+TABLE OF CONTENTS:
+    1. PURPOSE
+    2. EXPORTING CSV DATA
+    3. SELECTING A CUTOFF DATE
+    4. GENERAL WORKFLOW
+    5. CREDITS AND CLOSING
+
+PURPOSE:
+This program is intended to take the invoice data exported from the FOLIO
+desktop client in the form of a CSV file, extract the relevant columns of
+information, and process the data in order to generate a monthly XLSX budget
+report for the library. It does not directly interface with the FOLIO client
+API; rather, it takes the raw data exported from FOLIO and processes it
+locally.
+
+EXPORTING CSV DATA:
+At the time of writing, the steps to export the invoice data from the FOLIO
+desktop client are listed down below.
+    1. Log into "https://mobius.folio.ebsco.com" using an account which has
+        permission to export invoice data.
+    2. Navigate to the "Invoices" action, which may be under the "Apps"
+        dropdown menu if not immediately seen on the top bar of the website.
+    3. Navigate down the left-side filters to filter for the current fiscal
+        year (at the time of writing, the current fiscal year is "FY2025").
+    4. Click the blue "Actions" dropdown menu in the top right-hand corner
+        of the screen, under the account name and information.
+    5. Click "Export to CSV" or something similar to download the raw data.
+Please note: The program searches for certain headers in order to process the
+data correctly and efficiently. Please ensure that the following columns are
+present EXACTLY AS WRITTEN, otherwise the program will not function as
+intended.
+    - "Total" : The total monetary amount of the expenditure.
+    - "Invoice date" : The date of the expenditure, used to calculate what is
+        before and after the cutoff date.
+    - "Invoice line fund distributions" : The merging of 4 separate columns,
+        the relevant information that is extracted is the "Title" or "Subfund"
+        information.
+
+SELECTING A CUTOFF DATE:
+Selecting a cutoff date is a simple process of navigating the calendar on the
+main screen of the program to the desired date and clicking it normally.
+Any expenditure BEFORE the cutoff date will NOT be counted towards the Current
+Expenditures while anything AFTER the cutoff date WILL count (e.g. January 2025
+is BEFORE February 2025, February 2025 is AFTER January 2025).
+
+GENERAL WORKFLOW:
+Below is an example of the general workflow of the program during a normal and
+intended use case.
+    1. The raw invoice data is exported from FOLIO using the steps provided
+        under "EXPORTING CSV DATA" to a CSV file located in the "Downloads"
+        folder under the home directory of a local machine.
+    2. The program executable is opened.
+    3. The name of the export file is typed into the "Input filename" field OR
+        The file is found through the "Find file..." window feature of the
+        program.
+    4. A cutoff date is chosen using the calendar on the main screen of the
+        program.
+    5. The program is executed with "Enter", and a report is generated in the
+        executable's current working directory.
+
+CREDITS AND CLOSING:
+Developed for use and further development on Windows using Python 3.12+.
+
+Developed by Pickler Memorial Library, Truman State University.
+
+More information can be found by reading the user and developer manuals
+associated with the release.
+
+Text originally published 2025-01-30, v1.0.0.
+Last updated 2025-01-30, v1.0.0.
+Raw ver. info. (for tracking development): Z2l0aHViQGphcS1sYWduaXJhYw==

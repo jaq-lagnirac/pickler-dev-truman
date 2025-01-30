@@ -189,7 +189,7 @@ def open_info_help() -> None:
     info_window.title('Info/Help')
 
     # adds logo image
-    INFO_IMAGE_MULTIPLIER = 0.1
+    INFO_IMAGE_MULTIPLIER = 0.3
     info_image = Image.open(resource_path(LOGO_PATH)) # opens image
     info_image = info_image.resize(size=[int(INFO_IMAGE_MULTIPLIER * length) \
                                    for length in info_image.size])
@@ -278,6 +278,7 @@ def find_input_file() -> None:
         ('Comma-separated values', '*.csv'),
         # ('Microsoft Excel', '*.xlsx')
     ]
+    # if user closes out of filedialog prematurely, then folder_path = ''
     folder_path = filedialog.askopenfilename(parent=root,
                                              title='Find file - jaq',
                                              initialdir=initial_directory,
@@ -287,12 +288,6 @@ def find_input_file() -> None:
     input_filename.delete(0, 'end') # deletes previous text input
     input_filename.insert(0, folder_path) # inputs newly extracted folder path
 
-    # if user closes out of filedialog prematurely, then folder_path = ''
-    # if folder_path:
-    #     start_report_generation()
-    # NOTE 2025-01-30: Commenting out automatic report generation after
-    # choosing a file in order to allow for less frustration if correct cutoff
-    # date not chosen
     return
 
 
