@@ -288,9 +288,11 @@ def find_input_file() -> None:
     input_filename.insert(0, folder_path) # inputs newly extracted folder path
 
     # if user closes out of filedialog prematurely, then folder_path = ''
-    if folder_path:
-        start_report_generation()
-
+    # if folder_path:
+    #     start_report_generation()
+    # NOTE 2025-01-30: Commenting out automatic report generation after
+    # choosing a file in order to allow for less frustration if correct cutoff
+    # date not chosen
     return
 
 
@@ -616,11 +618,11 @@ def generate_xlsx_report(file_path : str,
             'bottom' : 6, # Index: 6, Name: Double; Weight: 3; Style: =====
         }
     )
-    worksheet.merge_range('A1:F1', '')
+    worksheet.merge_range('A1:F1', '', HEADER_FORMAT)
     worksheet.merge_range('A2:F2', HEADER_TEXT, HEADER_FORMAT)
 
     workbook.close()
-    return
+    return output_filename
 
 
 def start_report_generation() -> None:
@@ -659,11 +661,11 @@ def start_report_generation() -> None:
     #     print(f'{key:<25}{value:>10}')
 
     # generates report for xlsx table
-    generate_xlsx_report(filename,
-                         ytd_cost_sums,
-                         current_cost_sums)
+    output_filename = generate_xlsx_report(filename,
+                                           ytd_cost_sums,
+                                           current_cost_sums)
 
-    update_status(msg='[PLACEHOLDER: PROGRAM COMPLETE]',
+    update_status(msg=f'Generated {output_filename}.',
                   col=SUCCESS_COL,
                   enter_state='normal')
     return
