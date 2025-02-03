@@ -5,7 +5,7 @@
 # those columns
 #
 # Project start date: 2024-12-06
-# Project end date: YYYY-MM-DD
+# Project end date: 2025-02-03
 
 ### LIBRARIES / PACKAGES ###
 
