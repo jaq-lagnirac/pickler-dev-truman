@@ -32,7 +32,7 @@ DEFAULT_COL = '#000000'
 FONT_TUPLE = ('Verdana', 10)
 LOGO_PATH = os.path.join('images', 'logo-no-background.png')
 HELP_PATH = os.path.join('texts', 'info-help-text.txt')
-SEARCH_WIN_SIZE = 100000 # minutes
+SEARCH_WIN_SIZE = 15 # minutes
 
 # keys required in config.json
 REQUIRED_CONFIG_KEYS = {
