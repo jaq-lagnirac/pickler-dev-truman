@@ -32,7 +32,7 @@ DEFAULT_COL = '#000000'
 FONT_TUPLE = ('Verdana', 10)
 LOGO_PATH = os.path.join('images', 'logo-no-background.png')
 HELP_PATH = os.path.join('texts', 'info-help-text.txt')
-SEARCH_WIN_SIZE = 15 # minutes
+SEARCH_WIN_SIZE = 100000 # minutes
 
 # keys required in config.json
 REQUIRED_CONFIG_KEYS = {
@@ -438,56 +438,48 @@ def login_folioclient() -> folioclient.FolioClient:
     return f
 
 
-def extract_single_query(query : dict,
-                         patron_id : str) -> dict:
+def extract_single_query(f : folioclient.FolioClient,
+                         query : dict) -> dict:
     """Extracts information from a single query.
     
     A function which compares the borrower barcode against the patron
     ID and outputs a dictionary depending on if it's a match.
     
     Args:
+        f (FolioClient): An API object to the FOLIOClient
         query (dict): The query to be searched against
-        patron_id (str): The inputted patron ID to be compared against
     
     Returns:
-        dict: Returns a dictionary of the extracted information if
-            it's a good match, otherwise returns an empty dictionary
+        dict: Returns a dictionary of the extracted information
     """
 
-    # extracts patron ID associated with query
-    barcode_borrower = query['borrower']['barcode']
-
-    if barcode_borrower != patron_id:
-        return {} # returns an empty dictionary on a bad match
-    
-    # otherwise, if barcode matches inputted
-    # patron ID, extract info from query
+    # queries item ID to get title
+    loan_id = query['items'][0]['loanId']
+    item = f.folio_get_single_object(path=f'/circulation/loans/{loan_id}')
     
     # extracts due date, coverts to a more human-readable format
     # https://docs.python.org/3/library/datetime.html#strftime-strptime-behavior
-    iso_due_date = datetime.fromisoformat(query['dueDate'])
+    iso_due_date = datetime.fromisoformat(item['dueDate'])
     iso_due_date = iso_due_date.astimezone() # defaults to system timezone
     printable_due_date = iso_due_date.strftime('%a %d %b %Y, %I:%M%p')
 
     # extracting and bundling the needed item information
-    item = query['item']
     item_info = {
-        'title' : item['title'],
-        'barcode' : item['barcode'],
+        'title' : item['item']['title'],
+        'barcode' : item['item']['barcode'],
         'dueDate' : printable_due_date,
+        'callNumber' : 'n/a', # default case
     }
     # some items (for some reason) do not have a call number
     # replaces blank key with filler to prevent current
     # and future KeyError(s)
-    if 'callNumber' in item:
-        item_info['callNumber'] = item['callNumber']
-    else:
-        item_info['callNumber'] = 'n/a'
+    if 'callNumber' in item['item']:
+        item_info['callNumber'] = item['item']['callNumber']
     return item_info
 
 
-def extract_queries(queries : Generator[str, str, None],
-                    patron_id : str) -> list:
+def extract_queries(f : folioclient.FolioClient,
+                    queries : Generator[str, str, None]) -> list:
     """Extracts queries from FOLIO object.
     
     A function which iterates through a FOLIO object and compares
@@ -496,8 +488,8 @@ def extract_queries(queries : Generator[str, str, None],
     to a list to be returned by the function.
     
     Args:
+        f (FolioClient): An API object to the FOLIOClient
         queries (Generator): A non-iterable object returned by FOLIO
-        patron_id (str): The inputted patron ID to be compared against
     
     Returns:
         list: Returns a list of dictionaries containing item information
@@ -505,7 +497,7 @@ def extract_queries(queries : Generator[str, str, None],
 
     checked_out_items = [] # list of dicts to be returned
     for query in queries:
-        item_info = extract_single_query(query, patron_id)
+        item_info = extract_single_query(f, query)
         
         if item_info: # if not an empty info dictionary
             checked_out_items.append(item_info)
@@ -671,6 +663,20 @@ def start_printing_process() -> None:
     timeframe_start = time_now - search_window # calculates start of search
     iso_timeframe = timeframe_start.isoformat() # converts to ISO 8601
 
+    # trims patron ID to acceptable length (NO LONGER)
+    # NOTE: patron IDs for Truman are Banner IDs, the values obtained
+    # from card swipes are "BannerID + the number of the card issued",
+    # i.e. if patron number 123456789 has had a card issued 3 times, a
+    # possible number extracted from their card would be "12345678903".
+    # Therefore, we can (hopefully) assume that no matter what input
+    # length is, we can trim the patron id to a length == ID_LENGTH
+    #
+    # NOTE 2024-12-02: Turns out we CANNOT safely assume this---the
+    # system can actually take 9-digit Banner IDs, 11-digit Patron IDs,
+    # 14-digit Community Borrower IDs, and any other length ID that remains
+    # in the system. tl;dr trimming the ID is superfluous
+    patron_id = id_input.get()
+
     # searches for all checkouts in the last 15 mins
     # NOTE: There is apparently a CQL way to query the borrower.barcode
     # specifically, however no one here (including myself) knows how to
@@ -688,28 +694,17 @@ def start_printing_process() -> None:
     # CQL through the FOLIO API does not support nested queries as of this
     # moment.
     update_status(msg='Querying FOLIO API.')
-    search_query = f'loanDate > \"{iso_timeframe}\" and action == \"checkedout\"'
-    queries = f.folio_get_all(path='/circulation/loans',
-                              key='loans',
+    search_query = f'date > \"{iso_timeframe}\"' \
+        f' and userBarcode == \"{patron_id}\"' \
+        ' and action == \"Checked out\"'
+    queries = f.folio_get_all(path='audit-data/circulation/logs',
+                              key='logRecords',
                               query=search_query)
 
-    # trims patron ID to acceptable length (NO LONGER)
-    # NOTE: patron IDs for Truman are Banner IDs, the values obtained
-    # from card swipes are "BannerID + the number of the card issued",
-    # i.e. if patron number 123456789 has had a card issued 3 times, a
-    # possible number extracted from their card would be "12345678903".
-    # Therefore, we can (hopefully) assume that no matter what input
-    # length is, we can trim the patron id to a length == ID_LENGTH
-    #
-    # NOTE 2024-12-02: Turns out we CANNOT safely assume this---the
-    # system can actually take 9-digit Banner IDs, 11-digit Patron IDs,
-    # 14-digit Community Borrower IDs, and any other length ID that remains
-    # in the system. tl;dr trimming the ID is superfluous
-    patron_id = id_input.get()
 
     # iterates through queries to find matches to patron ID
     update_status(msg='Extracting item information.')
-    checked_out_items = extract_queries(queries, patron_id)
+    checked_out_items = extract_queries(f, queries)
     id_input.delete(0, 'end') # deletes patron ID from input
     # test_item = {
     #     'title' : 'Loan Receipt Prints by jaq-lagnirac',
@@ -720,7 +715,7 @@ def start_printing_process() -> None:
     # checked_out_items = [test_item]
     if not checked_out_items:
         update_status(msg='No items checked out within ' \
-                      f'the past 15 minutes by \"{patron_id}\".',
+                      f'the past {SEARCH_WIN_SIZE} minutes by \"{patron_id}\".',
                       col=SUCCESS_COL,
                       enter_state='normal')
         return
@@ -912,9 +907,9 @@ if __name__ == '__main__':
     
     # bottom credits
     description = tk.Label(root,
-                           text='\nDeveloped by Technical Services ' + \
-                            '& Systems, Pickler Memorial Library, ' + \
-                            'Truman State University, MO, 2024\n' + \
+                           text='\nDeveloped by Technical Services ' \
+                            '& Systems, Pickler Memorial Library, ' \
+                            'Truman State University, MO, 2024\n' \
                             'Raw ver. info.: Z2l0aHViQGphcS1sYWduaXJhYw==',
                            justify='left',
                            font=(FONT_TUPLE[0], 7))
