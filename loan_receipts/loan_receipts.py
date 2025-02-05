@@ -6,6 +6,7 @@
 # 
 # Project start date: 2024-10-21
 # Project end date: 2024-11-12
+# v3.0.0 released: 2025-02-05
 # (initial delivery before comprehensive testing)
 
 ### LIBRARIES / PACKAGES ###
@@ -320,7 +321,8 @@ def open_info_help() -> None:
     # adds logo image
     INFO_IMAGE_MULTIPLIER = 1
     info_image = Image.open(resource_path(LOGO_PATH)) # opens image
-    info_image = info_image.resize(size=[int(INFO_IMAGE_MULTIPLIER * length) \
+    info_image = info_image.resize(size=[int(INFO_IMAGE_MULTIPLIER * \
+                                             length) \
                                          for length in image.size])
     # converts image to format usable by Tkinter
     info_logo = ImageTk.PhotoImage(info_image)
