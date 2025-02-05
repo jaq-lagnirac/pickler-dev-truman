@@ -237,8 +237,9 @@ def find_printers_window() -> None:
     # adds logo image
     INFO_IMAGE_MULTIPLIER = 1
     printer_image = Image.open(resource_path(LOGO_PATH)) # opens image
-    printer_image = image.resize(size=[int(INFO_IMAGE_MULTIPLIER * length) \
-                                    for length in image.size])
+    printer_image = printer_image.resize(size=[int(INFO_IMAGE_MULTIPLIER * \
+                                                   length) \
+                                               for length in image.size])
     # converts image to format usable by Tkinter
     printer_logo = ImageTk.PhotoImage(printer_image)
     tk.Label(printers_window, image=printer_logo).grid(row=0,
@@ -319,8 +320,8 @@ def open_info_help() -> None:
     # adds logo image
     INFO_IMAGE_MULTIPLIER = 1
     info_image = Image.open(resource_path(LOGO_PATH)) # opens image
-    info_image = image.resize(size=[int(INFO_IMAGE_MULTIPLIER * length) \
-                                    for length in image.size])
+    info_image = info_image.resize(size=[int(INFO_IMAGE_MULTIPLIER * length) \
+                                         for length in image.size])
     # converts image to format usable by Tkinter
     info_logo = ImageTk.PhotoImage(info_image)
     tk.Label(info_window, image=info_logo).grid(row=0,
@@ -453,28 +454,29 @@ def extract_single_query(f : folioclient.FolioClient,
         dict: Returns a dictionary of the extracted information
     """
 
-    # queries item ID to get title
-    loan_id = query['items'][0]['loanId']
-    item = f.folio_get_single_object(path=f'/circulation/loans/{loan_id}')
+    # queries loan ID to get loan- and item-specific information
+    loan_id = query['items'][0]['loanId'] # should always exist
+    loan = f.folio_get_single_object(path=f'/circulation/loans/{loan_id}')
+    item = loan['item'] # should always exist
+
+    # initializes base case dict
+    item_info = { # default cases
+        'title' : 'n/a',
+        'barcode' : 'n/a',
+        'callNumber' : 'n/a',
+    }
+    # safely iterates through keys and fills them in if they exist
+    for key in item_info.keys():
+        if key in item:
+            item_info[key] = item[key]
     
     # extracts due date, coverts to a more human-readable format
     # https://docs.python.org/3/library/datetime.html#strftime-strptime-behavior
-    iso_due_date = datetime.fromisoformat(item['dueDate'])
+    iso_due_date = datetime.fromisoformat(loan['dueDate'])
     iso_due_date = iso_due_date.astimezone() # defaults to system timezone
     printable_due_date = iso_due_date.strftime('%a %d %b %Y, %I:%M%p')
+    item_info['dueDate'] = printable_due_date # adds on datetime string to dict
 
-    # extracting and bundling the needed item information
-    item_info = {
-        'title' : item['item']['title'],
-        'barcode' : item['item']['barcode'],
-        'dueDate' : printable_due_date,
-        'callNumber' : 'n/a', # default case
-    }
-    # some items (for some reason) do not have a call number
-    # replaces blank key with filler to prevent current
-    # and future KeyError(s)
-    if 'callNumber' in item['item']:
-        item_info['callNumber'] = item['item']['callNumber']
     return item_info
 
 
