@@ -6,8 +6,8 @@
 # 
 # Project start date: 2024-10-21
 # Project end date: 2024-11-12
-# v2.0.0 released: 2025-02-05
 # (initial delivery before comprehensive testing)
+# v2.0.0 released: 2025-02-05
 
 ### LIBRARIES / PACKAGES ###
 
