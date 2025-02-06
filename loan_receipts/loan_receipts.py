@@ -690,9 +690,9 @@ def start_printing_process() -> None:
     # input (length 11), so that fix shouldn't be too hard to implement. 
     patron_id = id_input.get()
     ID_SWIPE_LENGTH = 11
-    TRIM_LENGTH = 2
+    TRIMMED_LENGTH = 9
     if len(patron_id) == ID_SWIPE_LENGTH:
-        patron_id = patron_id[:-TRIM_LENGTH] # trims last two digits
+        patron_id = patron_id[:-TRIMMED_LENGTH] # trims down to 9 digits
 
     # searches for all checkouts in the last 15 mins
     # NOTE: There is apparently a CQL way to query the borrower.barcode
