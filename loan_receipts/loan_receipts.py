@@ -667,7 +667,7 @@ def start_printing_process() -> None:
     timeframe_start = time_now - search_window # calculates start of search
     iso_timeframe = timeframe_start.isoformat() # converts to ISO 8601
 
-    # trims patron ID to acceptable length (NO LONGER)
+    # trims patron ID to acceptable length
     # NOTE: patron IDs for Truman are Banner IDs, the values obtained
     # from card swipes are "BannerID + the number of the card issued",
     # i.e. if patron number 123456789 has had a card issued 3 times, a
@@ -679,7 +679,20 @@ def start_printing_process() -> None:
     # system can actually take 9-digit Banner IDs, 11-digit Patron IDs,
     # 14-digit Community Borrower IDs, and any other length ID that remains
     # in the system. tl;dr trimming the ID is superfluous
+    #
+    # NOTE 2025-02-06: TURNS OUT that this the original trimming was NOT needed
+    # for use under /circulation/loans but IS required for use with the 
+    # /audit-data/circulation/logs API endpoint. The Patron ID is a part of the
+    # CQL query and therefore must be specific to the 9-digit Banner ID; the
+    # system cannot handle the 11-digit Patron ID, BUT must still be able to
+    # handle the 14-digit Community Borrower ID. Luckily, according to Lena,
+    # the system only needs to trim the last two digits through the card reader
+    # input (length 11), so that fix shouldn't be too hard to implement. 
     patron_id = id_input.get()
+    ID_SWIPE_LENGTH = 11
+    TRIM_LENGTH = 2
+    if len(patron_id) == ID_SWIPE_LENGTH:
+        patron_id = patron_id[:-TRIM_LENGTH] # trims last two digits
 
     # searches for all checkouts in the last 15 mins
     # NOTE: There is apparently a CQL way to query the borrower.barcode
