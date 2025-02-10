@@ -72,7 +72,7 @@ if not f:
 from pprint import pprint
 
 
-call_number = 'PC'
+call_number = 'P'
 search_query = f'tenantId = \"{tenant}\"' \
     f' and itemNormalizedCallNumbers = {call_number}'
 
@@ -86,8 +86,9 @@ queries = f.folio_get(path='/search/instances',
                       query=search_query)
 pprint(queries)
 
-# for index, query in enumerate(queries):
-#     pprint(query)
-#     print('-' * 100)
-#     if index > 5:
-#         break
+for query in queries:
+    length = len(query['items'])
+    print(length)
+    if length > 1:
+        pprint(query['items'])
+    print('-' * 100)
