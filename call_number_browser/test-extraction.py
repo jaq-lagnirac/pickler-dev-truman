@@ -1,6 +1,6 @@
 # Justin Caringal
 # 
-# [PROGRAM PURPOSE]
+# Tests extraction and API pipeline
 # 
 # Project start date: 2025-02-10
 # Project end date: YYYY-MM-DD
@@ -64,6 +64,8 @@ def login_folioclient() -> folioclient.FolioClient:
 
     return f
 
+
+
 f = login_folioclient()
 if not f:
     print('NOOOOOO')
@@ -71,36 +73,63 @@ if not f:
 
 from pprint import pprint
 
-call_number = 'PC'
-search_query = f'tenantId == \"{tenant}\"' \
-    f' and itemNormalizedCallNumbers == {call_number}'
+call_number = 'HQ'
+search_query = f'holdings.tenantId=\"{tenant}\"' \
+    f' and holdingsNormalizedCallNumbers==\"{call_number}\"' \
+    ' and staffSuppress==\"false\"'
 
 total_records = f.folio_get(path='/search/instances',
                             key='totalRecords',
                             query=search_query)
 
-queries = f.folio_get(path='/search/instances',
-                      key='instances',
-                      query=search_query)
+queries = f.folio_get_all(path='/search/instances',
+                          key='instances',
+                          query=search_query)
 
 extracted_items = []
+counter = 0
 for query in queries:
+    counter += 1
     title = query['title']
     items = query['items']
     for item in items:
         item_info = {
             'title' : title,
-            'callNumber' : item['effectiveCallNumberComponents']['callNumber'],
-            'shelvingOrder' : item['effectiveShelvingOrder'] # for sorting
+            'callNumber' : 'n/a',
+            'shelvingOrder' : 'n/a' # for sorting
         }
-        extracted_items.append(item_info)
 
-pprint(extracted_items)
-print(total_records, len(extracted_items))
-print('-' * 100)
+        call_num_components = item['effectiveCallNumberComponents']
+        if 'callNumber' in call_num_components:
+            item_info['callNumber'] = call_num_components['callNumber']
+
+        if 'effectiveShelvingOrder' in item:
+            item_info['shelvingOrder'] = item['effectiveShelvingOrder']
+            extracted_items.append(item_info)
+
+print('finished extracting')
+# pprint(extracted_items)
+# print('-' * 100)
 sorting_reqs = lambda info : (info['shelvingOrder'])
 sorted_items = sorted(extracted_items, key=sorting_reqs)
-pprint(sorted_items)
+# pprint(sorted_items)
+print('finished sorting')
+
+def remove_duplicates(items):
+    seen = set()
+    trimmed_items = []
+    for item in items:
+        hashable_tuple = tuple(sorted(item.items()))
+        if hashable_tuple not in seen:
+            seen.add(hashable_tuple)
+            trimmed_items.append(item)
+    return trimmed_items
+
+trimmed_items = remove_duplicates(sorted_items)
+print(total_records, counter, len(sorted_items), len(trimmed_items))
+with open('test-trimmed-items.txt', 'w', encoding='utf-8') as output:
+    for item in trimmed_items:
+        output.write(f'{item}\n')
 
 def extract_class_letters(call_number):
     letters = ""

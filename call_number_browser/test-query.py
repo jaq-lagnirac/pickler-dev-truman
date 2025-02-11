@@ -1,6 +1,6 @@
 # Justin Caringal
 # 
-# [PROGRAM PURPOSE]
+# General testing grounds for initial querying of call numbers
 # 
 # Project start date: 2025-02-10
 # Project end date: YYYY-MM-DD
