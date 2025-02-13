@@ -13,7 +13,7 @@ import sys
 import json
 import tkinter as tk
 import webbrowser as wb
-from time import sleep
+from typing import Generator
 import folioclient
 from PIL import ImageTk, Image
 
@@ -26,6 +26,11 @@ DEFAULT_COL = '#000000'
 FONT_TUPLE = ('Verdana', 10)
 LOGO_PATH = os.path.join('images', 'logo-no-background.png')
 HELP_PATH = os.path.join('texts', 'info-help-text.txt')
+SLICE_ONE_SIDED = 10
+
+# scope resolution for variable used in
+# login_folioclient and start_call_num_search
+tenant = None
 
 # keys required in config.json
 REQUIRED_CONFIG_KEYS = {
@@ -258,6 +263,8 @@ def login_folioclient() -> folioclient.FolioClient:
         FolioClient: Returns an API object to the FOLIOClient
     """
 
+    global tenant
+
     config_name = config_relpath.get()
 
     # checks for existence of config.json file, notifies user if none available
@@ -306,9 +313,125 @@ def login_folioclient() -> folioclient.FolioClient:
     return f
 
 
-def start_call_num_search():
-    """[PLACEHOLDER]"""
-    print('start_call_num_search')
+def extract_class_letters(call_number : str) -> str:
+    """Extracts alphabetical prefix.
+
+    A function which takes a Library of Congress (LoC) classification
+    number and extracts the class letters from the beginning of
+    the input. More information on class letters can be found 
+    at the following links:
+
+    https://guides.lib.berkeley.edu/c.php?g=125157&p=1027399
+    https://www.loc.gov/catdir/cpso/lcco/
+    
+    Args:
+        call_number (str): The input string to be cleaned
+    
+    Returns:
+        str: The prefixing class letters of the LoC identifier
+    """
+    letters = ""
+    for char in call_number:
+        if not char.isalpha():
+            break # breaks when first non-alpha character encountered
+        letters += char
+    return letters
+
+
+def extract_queries(queries : Generator[any, any, None]) -> list:
+    """Turns a FOLIO generator into a list.
+    
+    A function which takes a Generator object from the FOLIO
+    API folio_get_all method and extracts the relevant
+    information into a dictionary which is then appended to
+    a return list.
+
+    Args:
+        queries (Generator): A FOLIO generator object containing
+            call number information.
+    
+    Returns:
+        list: A list of the relevant extracted information stored
+            in separate dictionaries.
+    """
+
+    extracted_items = [] # the list to be returned
+
+    for query in queries:
+        title = query['title'] # the same across the board
+        items = query['items'] # a dictionary of further key-values
+        
+        # iterates through each separate item tied to a holding
+        for item in items:
+            item_info = {
+                'title' : title,
+                'callNumber' : 'n/a',
+                'shelvingOrder' : 'n/a' # for sorting
+            }
+
+            call_num_components = item['effectiveCallNumberComponents']
+            if 'callNumber' in call_num_components:
+                item_info['callNumber'] = call_num_components['callNumber']
+
+            if 'effectiveShelvingOrder' in item:
+                item_info['shelvingOrder'] = item['effectiveShelvingOrder']
+                extracted_items.append(item_info)
+    
+    return extracted_items
+
+
+def start_call_num_search() -> None:
+    """The response to clicking the Enter button.
+    
+    A function which validates the user inputs,
+    organizes the login actions to FolioClient,
+    and handles the call number browser.
+
+    Serves as the "main" function after Enter is clicked.
+    
+    Args:
+        None
+    
+    Returns:
+        None
+    """
+
+    # logs into folioclient
+    update_status(msg='Logging into FOLIO.',
+                  enter_state='disabled')
+    f = login_folioclient()
+    if not f:
+        # safety net to enable enter button again,
+        # more detailed status messages executed during
+        # login_folioclient() execution
+        update_status(enter_state='normal')
+        return
+
+    update_status(msg='Querying FOLIO API.')
+    # takes input from user and files
+    global tenant
+    call_number = call_num_input.get()
+    class_letters = extract_class_letters(call_number)
+    # formats search query
+    search_query = f'holdings.tenantId=\"{tenant}\"' \
+        f' and holdingsNormalizedCallNumbers==\"{class_letters}\"' \
+        ' and staffSuppress==\"false\"'
+    # makes the query
+    queries = f.folio_get_all(path='/search/instances',
+                              key='instances',
+                            query=search_query)
+    
+    # a list of call number information from a FOLIO generator
+    update_status(msg='Extracting items from FOLIO.')
+    extracted_items = extract_queries(queries)
+
+    # sorts the list
+    update_status(msg='Sorting extracted items.')
+    sorting_reqs = lambda info : (info['shelvingOrder'])
+    sorted_items = sorted(extracted_items, key=sorting_reqs)
+
+    
+    return
 
 
 # Justin Caringal, TSU, BSCS 2025, github@jaq-lagnirac
