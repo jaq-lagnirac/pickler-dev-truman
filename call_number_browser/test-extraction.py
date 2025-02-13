@@ -71,6 +71,33 @@ if not f:
     print('NOOOOOO')
     sys.exit()
 
+import tkinter as tk
+from tkinter import ttk
+def init_progress_bar():
+    pbar_window = tk.Toplevel()
+    pbar_window.title('Progress Bar Test')
+    pbar_window.focus_force()
+
+    progress_bar = ttk.Progressbar(pbar_window,
+                                   orient='horizontal',
+                                   mode='determinate')
+    progress_bar.grid(sticky='NESW',
+                      row=0,
+                      column=0)
+    
+    cancel_button = tk.Button(pbar_window,
+                              text='Cancel',
+                              command=pbar_window.destroy)
+    cancel_button.grid(sticky='NESW',
+                       row=1,
+                       column=0)
+    
+    pbar_window.mainloop()
+
+init_progress_bar()
+print('test')
+sys.exit()
+
 from pprint import pprint
 
 call_number = 'HQ'
@@ -127,9 +154,9 @@ def remove_duplicates(items):
 
 trimmed_items = remove_duplicates(sorted_items)
 print(total_records, counter, len(sorted_items), len(trimmed_items))
-with open('test-trimmed-items.txt', 'w', encoding='utf-8') as output:
+with open('test-trimmed-call-nums.txt', 'w', encoding='utf-8') as output:
     for item in trimmed_items:
-        output.write(f'{item}\n')
+        output.write(f'{item['callNumber']}\n')
 
 def extract_class_letters(call_number):
     letters = ""
