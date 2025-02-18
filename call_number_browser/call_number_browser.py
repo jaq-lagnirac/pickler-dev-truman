@@ -14,6 +14,7 @@ import json
 import tkinter as tk
 import webbrowser as wb
 from typing import Generator
+from bisect import bisect
 import folioclient
 from PIL import ImageTk, Image
 
@@ -116,7 +117,7 @@ def update_validation(*entry : tk.Event) -> bool:
     # function validates to ensure call number is inputted
     is_valid_id = None
     if call_num:
-        status.config(text='',
+        status.config(text='Valid call number.',
                       fg=SUCCESS_COL)
         enter_button.config(state='normal')
         is_valid_id = True
@@ -338,7 +339,8 @@ def extract_class_letters(call_number : str) -> str:
     return letters
 
 
-def extract_queries(queries : Generator[any, any, None]) -> list:
+def extract_queries(queries : Generator[any, any, None],
+                    total_records : int) -> list:
     """Turns a FOLIO generator into a list.
     
     A function which takes a Generator object from the FOLIO
@@ -348,7 +350,8 @@ def extract_queries(queries : Generator[any, any, None]) -> list:
 
     Args:
         queries (Generator): A FOLIO generator object containing
-            call number information.
+            call number information
+        total_records (int): The total count of records listed (NOT items)
     
     Returns:
         list: A list of the relevant extracted information stored
@@ -357,7 +360,11 @@ def extract_queries(queries : Generator[any, any, None]) -> list:
 
     extracted_items = [] # the list to be returned
 
-    for query in queries:
+    for index, query in enumerate(queries):
+        queries_processed_txt = f'{index}/{total_records}' \
+            ' call numbers processed.'
+        update_status(msg=queries_processed_txt)
+
         title = query['title'] # the same across the board
         items = query['items'] # a dictionary of further key-values
         
@@ -378,6 +385,60 @@ def extract_queries(queries : Generator[any, any, None]) -> list:
                 extracted_items.append(item_info)
     
     return extracted_items
+
+
+def remove_duplicates(items : list) -> list:
+    """Removes duplicates from a list of dictionaries.
+    
+    A function which processes a list of dictionaries and removes any
+    duplicates while still maintaining a sorted order.
+    
+    Args:
+        items (list): a list of items to be trimmed
+    
+    Returns:
+        list: A trimmed list of items with no duplicates
+    """
+
+    seen = set() # items already seen
+    trimmed_items = [] # unique items to be returned
+    for item in items:
+        
+        # converts key-values into hashable pairs to be added to the list
+        hashable_pair = tuple(sorted(item.items()))
+        
+        if hashable_pair not in seen:
+            seen.add(hashable_pair) # adds hashable pair to set
+            trimmed_items.append(item) # adds full item to list
+
+    return trimmed_items
+
+
+def extract_slice(items : list, call_number : str) -> list:
+    """Identifies insertion point of call number into lst.
+    
+    A function which finds where a call number goes into a list
+    and returns a list of the call number as well as the items
+    preceeding and succeeding it.
+    
+    Args:
+        items (list): A list of dictionaries with item information
+        call_number (str): The number to be inserted
+    
+    Returns:
+        list: Returns a slice of the original slice surrounding
+            the insertion point of the call number
+    """
+
+    dummy_dict = {
+        'callNumber': call_number,
+        'shelvingOrder' : '',
+        'title' : '',
+    }
+
+    search_key = lambda info : info['callNumber']
+    insertion_point = bisect(items, call_number, key=search_key)
+    print(insertion_point)
 
 
 def start_call_num_search() -> None:
@@ -416,20 +477,31 @@ def start_call_num_search() -> None:
     search_query = f'holdings.tenantId=\"{tenant}\"' \
         f' and holdingsNormalizedCallNumbers==\"{class_letters}\"' \
         ' and staffSuppress==\"false\"'
-    # makes the query
+    # makes the queries
+    total_records = f.folio_get(path='/search/instances',
+                                key='totalRecords',
+                                query=search_query)
     queries = f.folio_get_all(path='/search/instances',
                               key='instances',
-                            query=search_query)
+                              query=search_query)
     
     # a list of call number information from a FOLIO generator
+    call_num_input.delete(0, 'end')
     update_status(msg='Extracting items from FOLIO.')
-    extracted_items = extract_queries(queries)
+    extracted_items = extract_queries(queries, total_records)
 
     # sorts the list
     update_status(msg='Sorting extracted items.')
     sorting_reqs = lambda info : (info['shelvingOrder'])
     sorted_items = sorted(extracted_items, key=sorting_reqs)
 
+    # trims duplicates from list
+    update_status(msg='Trimming duplicates.')
+    trimmed_items = remove_duplicates(sorted_items)
+    
+    from pprint import pprint
+    pprint(trimmed_items)
+    extract_slice(trimmed_items, call_number)
     
     return
 
