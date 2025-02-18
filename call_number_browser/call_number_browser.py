@@ -426,19 +426,55 @@ def extract_slice(items : list, call_number : str) -> list:
         call_number (str): The number to be inserted
     
     Returns:
-        list: Returns a slice of the original slice surrounding
-            the insertion point of the call number
+        list, bool, bool: Returns a slice of the original slice
+            surrounding the insertion point of the call number,
+            as well as if the slice overlaps with the start/end
+            out of bounds areas of the original list
     """
 
     dummy_dict = {
-        'callNumber': call_number,
+        'callNumber': f'>>>>>{call_number}',
         'shelvingOrder' : '',
         'title' : '',
     }
 
-    search_key = lambda info : info['callNumber']
+    search_key = lambda info : (info['callNumber'])
     insertion_point = bisect(items, call_number, key=search_key)
-    print(insertion_point)
+    items.insert(insertion_point, dummy_dict)
+
+    # scope resolution, default case
+    start_out_of_bounds = False
+    end_out_of_bounds = False
+
+    start_index = insertion_point - SLICE_ONE_SIDED
+    if start_index < 0: # check required to handle bottoming out
+        start_index = 0
+        start_out_of_bounds = True
+
+    # no top end check/reassignment needed, python handles it internally
+    #
+    # +1 for half-open indexing [ )
+    end_index = insertion_point + SLICE_ONE_SIDED + 1
+    if end_index > (len(items) - 1):
+        end_out_of_bounds = True
+
+    from pprint import pprint
+    return items[start_index : end_index], \
+        start_out_of_bounds, \
+        end_out_of_bounds
+
+
+def print_call_num_slice(item_slice : list,
+                         start_out_of_bounds : bool,
+                         end_out_of_bounds : bool) -> None:
+    """Formats the call number slice output.
+    
+    """
+
+    CALL_NUM_BUFFER = 30
+    TITLE_BUFFER = 50
+    LINE_LENGTH = CALL_NUM_BUFFER + TITLE_BUFFER
+    
 
 
 def start_call_num_search() -> None:
@@ -499,9 +535,14 @@ def start_call_num_search() -> None:
     update_status(msg='Trimming duplicates.')
     trimmed_items = remove_duplicates(sorted_items)
     
-    from pprint import pprint
-    pprint(trimmed_items)
-    extract_slice(trimmed_items, call_number)
+    # finds where to put inputted call number
+    update_status(msg='Extracting call number slice.')
+    list_slice, \
+        start_is_oob, \
+        end_is_oob \
+        = extract_slice(trimmed_items, call_number) # oob == out of bounds
+    
+    print_call_num_slice(list_slice, start_is_oob, end_is_oob)
     
     return
 
@@ -584,7 +625,8 @@ if __name__ == '__main__':
     # bottom rows
     BOTTOM_ROW = 100 # arbitrarily large number
     BUTTON_ROW = BOTTOM_ROW - 10
-    STATUS_ROW = BUTTON_ROW - 1
+    STATUS_ROW = BUTTON_ROW - 5
+    OUTPUT_ROW = STATUS_ROW + 1
     BUTTON_COLUMN_START = IMAGE_COLUMN + 1
     STATUS_FONT = ('Courier New', 11)
     status = tk.Label(root, text='', font=STATUS_FONT)
@@ -594,6 +636,28 @@ if __name__ == '__main__':
                 columnspan=100,
                 padx=TEXT_SIDE_PADDING,
                 pady=(12, 12))
+    # creates text widget
+    call_num_slice_textbox = tk.Text(root,
+                                     wrap='word',
+                                     font=('Courier New', FONT_TUPLE[1]),
+                                     height=20,
+                                     width=69)
+    call_num_slice_textbox.grid(row=OUTPUT_ROW,
+                                column=IMAGE_COLUMN,
+                                columnspan=100,
+                                padx=(X_WIDGET_PADDING, X_WIDGET_PADDING),
+                                pady=(3, 3))
+    call_num_slice_textbox.insert('end', '--PROGRAM OUTPUT GOES HERE--')
+    call_num_slice_textbox.config(state='disabled')
+    # creates scrollbar
+    slice_scrollbar = tk.Scrollbar(root)
+    slice_scrollbar.grid(row=0,
+                         column=100,
+                         rowspan=100,
+                         sticky='NS')
+    # configures text widget to use scrollbar
+    call_num_slice_textbox.config(yscrollcommand=slice_scrollbar.set)
+    slice_scrollbar.config(command=call_num_slice_textbox.yview)
     # NOTE: sticky='NESW' used to fill box to fit column and row
     enter_button = tk.Button(root,
                              text='Enter',
