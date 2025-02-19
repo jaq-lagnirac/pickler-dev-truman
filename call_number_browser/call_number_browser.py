@@ -15,6 +15,7 @@ import tkinter as tk
 import webbrowser as wb
 from typing import Generator
 from bisect import bisect
+from time import sleep
 import folioclient
 from PIL import ImageTk, Image
 
@@ -27,6 +28,10 @@ DEFAULT_COL = '#000000'
 FONT_TUPLE = ('Verdana', 10)
 LOGO_PATH = os.path.join('images', 'logo-no-background.png')
 HELP_PATH = os.path.join('texts', 'info-help-text.txt')
+DUMMY_TITLE_TEXT = f'<{'-' * 10}Inputted call number{'-' * 10}<'
+CALL_NUM_BUFFER = 40
+TITLE_BUFFER = 45
+LINE_LENGTH = CALL_NUM_BUFFER + TITLE_BUFFER
 SLICE_ONE_SIDED = 10
 
 # scope resolution for variable used in
@@ -363,7 +368,11 @@ def extract_queries(queries : Generator[any, any, None],
     for index, query in enumerate(queries):
         queries_processed_txt = f'{index}/{total_records}' \
             ' call numbers processed.'
-        update_status(msg=queries_processed_txt)
+        try:
+            update_status(msg=queries_processed_txt)
+        except tk.TclError:
+            # safely ends function in case of premature window closure
+            sys.exit(1)
 
         title = query['title'] # the same across the board
         items = query['items'] # a dictionary of further key-values
@@ -433,9 +442,9 @@ def extract_slice(items : list, call_number : str) -> list:
     """
 
     dummy_dict = {
-        'callNumber': f'>>>>>{call_number}',
+        'callNumber': f'{call_number}',
         'shelvingOrder' : '',
-        'title' : '',
+        'title' : DUMMY_TITLE_TEXT,
     }
 
     search_key = lambda info : (info['callNumber'])
@@ -458,7 +467,6 @@ def extract_slice(items : list, call_number : str) -> list:
     if end_index > (len(items) - 1):
         end_out_of_bounds = True
 
-    from pprint import pprint
     return items[start_index : end_index], \
         start_out_of_bounds, \
         end_out_of_bounds
@@ -469,12 +477,67 @@ def print_call_num_slice(item_slice : list,
                          end_out_of_bounds : bool) -> None:
     """Formats the call number slice output.
     
+    Formats and prints the call number slice from the extracted,
+    sorted, and trimmed item list.
+    
+    Args:
+        item_slice (list):
+        start_out_of_bounds (bool): Is True if slice goes out
+            of bounds at the start of the list (index < 0)
+        end_out_of_bounds (bool): Is True if slice goes out
+            of bounds at the end of the list (index >= len)
+
+    Returns:
+        None
     """
 
-    CALL_NUM_BUFFER = 30
-    TITLE_BUFFER = 50
-    LINE_LENGTH = CALL_NUM_BUFFER + TITLE_BUFFER
+    # sets up output header
+    output_heading = f'{'CALL NUMBER':<{CALL_NUM_BUFFER}}\t' \
+        f'{'TITLE':<{TITLE_BUFFER}}\n'
+    output_txt = f'{output_heading}{'-' * LINE_LENGTH}\n'
     
+    # sets up out of bounds check for starting string
+    if start_out_of_bounds:
+        output_txt += '>>>START OF FILE<<<\n'
+    
+    # adds call numbers and titles from slice
+    for item in item_slice:
+        
+        # extracts information
+        call_num = item['callNumber']
+        title = item['title'][ : TITLE_BUFFER]
+
+        # adds different formatting for inputted call num placement
+        num_buffer = CALL_NUM_BUFFER
+        if title == DUMMY_TITLE_TEXT:
+            num_buffer -= 3
+        
+        # adds call number and title to output string
+        output_txt += f'{call_num:<{num_buffer}}{title:<{TITLE_BUFFER}}\n'
+
+    # sets up out of bounds check for ending string
+    if end_out_of_bounds:
+        output_txt += '>>>>END OF FILE<<<<'
+    
+    # clears output textbox of previous outputs
+    call_num_slice_textbox.config(state='normal')
+    call_num_slice_textbox.delete(1.0, 'end')
+    call_num_slice_textbox.config(state='disabled')
+
+    update_status(msg='Success! Listing call numbers...',
+                  col=SUCCESS_COL)
+    # prints call numbers character by character
+    for char in output_txt:
+        try:
+            call_num_slice_textbox.config(state='normal')
+            call_num_slice_textbox.insert('end', char)
+            call_num_slice_textbox.config(state='disabled')
+            root.update()
+            sleep(0.001)
+        except tk.TclError:
+            return # safely ends function in case of premature window closure
+    
+    return # ends function
 
 
 def start_call_num_search() -> None:
@@ -543,7 +606,10 @@ def start_call_num_search() -> None:
         = extract_slice(trimmed_items, call_number) # oob == out of bounds
     
     print_call_num_slice(list_slice, start_is_oob, end_is_oob)
-    
+    success_msg = f'Success! Done printing slice around \"{call_number}\"'
+    update_status(msg=success_msg,
+                  col=SUCCESS_COL)
+
     return
 
 
@@ -574,7 +640,8 @@ if __name__ == '__main__':
     tk.Label(root, image=logo).grid(row=IMAGE_ROW,
                                     column=IMAGE_COLUMN,
                                     columnspan=100,
-                                    padx=(X_WIDGET_PADDING, X_WIDGET_PADDING))
+                                    padx=(X_WIDGET_PADDING, X_WIDGET_PADDING),
+                                    pady=(10, 0))
 
     # requests path of config.json
     CONFIG_ROW = IMAGE_ROW + 1
@@ -640,14 +707,15 @@ if __name__ == '__main__':
     call_num_slice_textbox = tk.Text(root,
                                      wrap='word',
                                      font=('Courier New', FONT_TUPLE[1]),
-                                     height=20,
-                                     width=69)
+                                     height=25,
+                                     width=90)
     call_num_slice_textbox.grid(row=OUTPUT_ROW,
                                 column=IMAGE_COLUMN,
-                                columnspan=100,
+                                columnspan=BUTTON_COUNT + 1,
                                 padx=(X_WIDGET_PADDING, X_WIDGET_PADDING),
-                                pady=(3, 3))
-    call_num_slice_textbox.insert('end', '--PROGRAM OUTPUT GOES HERE--')
+                                pady=(0, 10))
+    starting_txt = f'PROGRAM OUTPUT GOES HERE'.center(LINE_LENGTH, '-')
+    call_num_slice_textbox.insert('end', starting_txt)
     call_num_slice_textbox.config(state='disabled')
     # creates scrollbar
     slice_scrollbar = tk.Scrollbar(root)
