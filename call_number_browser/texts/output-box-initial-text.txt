@@ -1,0 +1,15 @@
+-------------------------------PROGRAM OUTPUT GOES HERE------------------------------
+
+IMPORTANT REMINDER:
+Input call number is case- and whitespcae-sensitive and WILL result in
+different outputs depending on the input. For example, "TX324.5 M66 2025" and
+"TX 324.5 M66 2025" (a space between the class letters and class numbers) will
+result in different outputs.
+
+Please make sure that config.json or another configuration JSON file exists,
+either in the same working directory as the executable (the default) or listed
+by the "Path to configuration file" field.
+
+For more information, please click "Info/Help", read other documentation,
+or contact Pickler Memorial Library's Technical Services and Systems
+at Truman State University, Kirksville, MO.

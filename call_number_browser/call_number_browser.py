@@ -28,6 +28,7 @@ DEFAULT_COL = '#000000'
 FONT_TUPLE = ('Verdana', 10)
 LOGO_PATH = os.path.join('images', 'logo-no-background.png')
 HELP_PATH = os.path.join('texts', 'info-help-text.txt')
+OUTPUT_BOX_INIT_PATH = os.path.join('texts', 'output-box-initial-text.txt')
 DUMMY_TITLE_TEXT = f'<{'-' * 10}Inputted call number{'-' * 10}<'
 CALL_NUM_BUFFER = 40
 TITLE_BUFFER = 45
@@ -502,7 +503,7 @@ def print_call_num_slice(item_slice : list,
     
     # adds call numbers and titles from slice
     for item in item_slice:
-        
+
         # extracts information
         call_num = item['callNumber']
         title = item['title'][ : TITLE_BUFFER]
@@ -511,7 +512,7 @@ def print_call_num_slice(item_slice : list,
         num_buffer = CALL_NUM_BUFFER
         if title == DUMMY_TITLE_TEXT:
             num_buffer -= 3
-        
+
         # adds call number and title to output string
         output_txt += f'{call_num:<{num_buffer}}{title:<{TITLE_BUFFER}}\n'
 
@@ -571,6 +572,7 @@ def start_call_num_search() -> None:
     # takes input from user and files
     global tenant
     call_number = call_num_input.get()
+    call_number = call_number.upper()
     class_letters = extract_class_letters(call_number)
     # formats search query
     search_query = f'holdings.tenantId=\"{tenant}\"' \
@@ -606,7 +608,7 @@ def start_call_num_search() -> None:
         = extract_slice(trimmed_items, call_number) # oob == out of bounds
     
     print_call_num_slice(list_slice, start_is_oob, end_is_oob)
-    success_msg = f'Success! Done printing slice around \"{call_number}\"'
+    success_msg = f'Success! Done printing slice around \"{call_number}\".'
     update_status(msg=success_msg,
                   col=SUCCESS_COL)
 
@@ -714,7 +716,10 @@ if __name__ == '__main__':
                                 columnspan=BUTTON_COUNT + 1,
                                 padx=(X_WIDGET_PADDING, X_WIDGET_PADDING),
                                 pady=(0, 10))
-    starting_txt = f'PROGRAM OUTPUT GOES HERE'.center(LINE_LENGTH, '-')
+    starting_txt = '' # scope resolution, default
+    init_txt_path = resource_path(OUTPUT_BOX_INIT_PATH)
+    with open(init_txt_path, 'r') as init_txt_file:
+        starting_txt = init_txt_file.read()
     call_num_slice_textbox.insert('end', starting_txt)
     call_num_slice_textbox.config(state='disabled')
     # creates scrollbar
