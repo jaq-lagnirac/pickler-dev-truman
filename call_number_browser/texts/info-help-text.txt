@@ -5,8 +5,10 @@ this tool. Please feel free to reach out if you have any questions.
 
 TABLE OF CONTENTS:
     1. PURPOSE
+    2. INPUT CALL NUMBER
     3. CONFIGURATION FILE
-    7. CREDITS AND CLOSING
+    4. OUTPUT AND FORMATTING
+    5. CREDITS AND CLOSING
 
 PURPOSE:
 This program is intended as a way to place new call numbers in an existing
