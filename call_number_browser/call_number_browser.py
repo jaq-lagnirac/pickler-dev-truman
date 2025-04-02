@@ -1,7 +1,7 @@
 # Justin Caringal
 # 
 # A program that takes in input call number in the system and finds 
-# call numbers which preceed and succeed around an input #
+# call numbers which preceed and succeed around an input
 # 
 # Project start date: 2025-02-10
 # Project end date: YYYY-MM-DD
@@ -18,6 +18,8 @@ from bisect import bisect
 from time import sleep
 import folioclient
 from PIL import ImageTk, Image
+import pycallnumber as pycn
+from pycallnumber.units import callnumbers
 
 ### GLOBAL CONSTANTS / VARIABLES ###
 
@@ -320,31 +322,6 @@ def login_folioclient() -> folioclient.FolioClient:
     return f
 
 
-def extract_class_letters(call_number : str) -> str:
-    """Extracts alphabetical prefix.
-
-    A function which takes a Library of Congress (LoC) classification
-    number and extracts the class letters from the beginning of
-    the input. More information on class letters can be found 
-    at the following links:
-
-    https://guides.lib.berkeley.edu/c.php?g=125157&p=1027399
-    https://www.loc.gov/catdir/cpso/lcco/
-    
-    Args:
-        call_number (str): The input string to be cleaned
-    
-    Returns:
-        str: The prefixing class letters of the LoC identifier
-    """
-    letters = ""
-    for char in call_number:
-        if not char.isalpha():
-            break # breaks when first non-alpha character encountered
-        letters += char
-    return letters
-
-
 def extract_queries(queries : Generator[any, any, None],
                     total_records : int) -> list:
     """Turns a FOLIO generator into a list.
@@ -383,12 +360,20 @@ def extract_queries(queries : Generator[any, any, None],
             item_info = {
                 'title' : title,
                 'callNumber' : 'n/a',
+                'sortCallNumber' : 'n/a', # for sorting
                 'shelvingOrder' : 'n/a' # for sorting
             }
 
             call_num_components = item['effectiveCallNumberComponents']
+            try:
+                call_num = pycn.callnumber(call_num_components['callNumber'])
+            except KeyError as e:
+                print('Call number does not exist.')
+            except Exception as e:
+                print(f'{call_num_components}\t{e}')
             if 'callNumber' in call_num_components:
-                item_info['callNumber'] = call_num_components['callNumber']
+                item_info['callNumber'] = call_num.for_print()
+                item_info['sortCallNumber'] = call_num.for_sort()
 
             if 'effectiveShelvingOrder' in item:
                 item_info['shelvingOrder'] = item['effectiveShelvingOrder']
@@ -424,7 +409,7 @@ def remove_duplicates(items : list) -> list:
     return trimmed_items
 
 
-def extract_slice(items : list, call_number : str) -> list:
+def extract_slice(items : list, call_number : callnumbers.LC) -> list:
     """Identifies insertion point of call number into lst.
     
     A function which finds where a call number goes into a list
@@ -433,7 +418,7 @@ def extract_slice(items : list, call_number : str) -> list:
     
     Args:
         items (list): A list of dictionaries with item information
-        call_number (str): The number to be inserted
+        call_number (LC): The number to be inserted
     
     Returns:
         list, bool, bool: Returns a slice of the original slice
@@ -442,14 +427,18 @@ def extract_slice(items : list, call_number : str) -> list:
             out of bounds areas of the original list
     """
 
+    print_call_num = call_number.for_print()
+    sort_call_num = call_number.for_sort()
+
     dummy_dict = {
-        'callNumber': f'{call_number}',
+        'callNumber': print_call_num,
+        'sortCallNumber' : sort_call_num,
         'shelvingOrder' : '',
         'title' : DUMMY_TITLE_TEXT,
     }
 
-    search_key = lambda info : (info['callNumber'])
-    insertion_point = bisect(items, call_number, key=search_key)
+    search_key = lambda info : (info['sortCallNumber'])
+    insertion_point = bisect(items, sort_call_num, key=search_key)
     items.insert(insertion_point, dummy_dict)
 
     # scope resolution, default case
@@ -515,6 +504,7 @@ def print_call_num_slice(item_slice : list,
 
         # adds call number and title to output string
         output_txt += f'{call_num:<{num_buffer}}{title:<{TITLE_BUFFER}}\n'
+        print(item['shelvingOrder'])
 
     # sets up out of bounds check for ending string
     if end_out_of_bounds:
@@ -572,8 +562,9 @@ def start_call_num_search() -> None:
     # takes input from user and files
     global tenant
     call_number = call_num_input.get()
-    call_number = call_number.upper()
-    class_letters = extract_class_letters(call_number)
+    call_number = call_number.upper().strip() # cleans and standardizes data
+    call_number = pycn.callnumber(call_number)
+    class_letters = call_number.classification.letters
     # formats search query
     search_query = f'holdings.tenantId=\"{tenant}\"' \
         f' and holdingsNormalizedCallNumbers==\"{class_letters}\"' \
