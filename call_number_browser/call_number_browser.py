@@ -4,7 +4,7 @@
 # call numbers which preceed and succeed around an input
 # 
 # Project start date: 2025-02-10
-# Project end date: YYYY-MM-DD
+# Project end date: 2025-04-07 (initial, tentative)
 
 ### LIBRARIES / PACKAGES ###
 
@@ -13,13 +13,13 @@ import sys
 import json
 import tkinter as tk
 import webbrowser as wb
-from typing import Generator
 from bisect import bisect
 from time import sleep
 import folioclient
 from PIL import ImageTk, Image
 import pycallnumber as pycn
 from pycallnumber.units import callnumbers
+from pycallnumber.exceptions import InvalidCallNumberStringError
 
 ### GLOBAL CONSTANTS / VARIABLES ###
 
@@ -120,20 +120,22 @@ def update_validation(*entry : tk.Event) -> bool:
     """
 
     # retrieves patron id from text field
-    call_num = call_num_input.get()
+    call_num = call_num_input.get().upper().strip()
 
     # function validates to ensure call number is inputted
-    is_valid_id = None
-    if call_num:
-        status.config(text='Valid call number.',
-                      fg=SUCCESS_COL)
+    is_valid_id = False # default case
+    try:
+        call_num = pycn.callnumber(call_num)
+        if type(call_num) != callnumbers.lc.LC:
+            raise InvalidCallNumberStringError 
+        status.config(text='Valid LC call number.',
+                        fg=SUCCESS_COL)
         enter_button.config(state='normal')
         is_valid_id = True
-    else:
-        status.config(text='Please input an LC call number.',
+    except InvalidCallNumberStringError:
+        status.config(text='Please input a valid LC call number.',
                       fg=FAIL_COL)
         enter_button.config(state='disabled')
-        is_valid_id = False
 
     # wrap-up statements
     root.update()
@@ -322,18 +324,17 @@ def login_folioclient() -> folioclient.FolioClient:
     return f
 
 
-def extract_queries(queries : Generator[any, any, None],
+def extract_queries(queries : list,
                     total_records : int) -> list:
-    """Turns a FOLIO generator into a list.
+    """Extracts FOLIO information into a list.
     
-    A function which takes a Generator object from the FOLIO
+    A function which takes a list from the FOLIO
     API folio_get_all method and extracts the relevant
     information into a dictionary which is then appended to
     a return list.
 
     Args:
-        queries (Generator): A FOLIO generator object containing
-            call number information
+        queries (list): A FOLIO list containing call number information
         total_records (int): The total count of records listed (NOT items)
     
     Returns:
@@ -356,28 +357,26 @@ def extract_queries(queries : Generator[any, any, None],
         items = query['items'] # a dictionary of further key-values
         
         # iterates through each separate item tied to a holding
+        # brute forces finding LC call numbers, because Pickler
+        # uses both LC and Dewey call numbers (for some reason)
         for item in items:
             item_info = {
                 'title' : title,
                 'callNumber' : 'n/a',
-                'sortCallNumber' : 'n/a', # for sorting
                 'shelvingOrder' : 'n/a' # for sorting
             }
 
             call_num_components = item['effectiveCallNumberComponents']
-            try:
+            try: # replaces "if 'callNumber' in call_num_components:"
                 call_num = pycn.callnumber(call_num_components['callNumber'])
-            except KeyError as e:
-                print('Call number does not exist.')
-            except Exception as e:
-                print(f'{call_num_components}\t{e}')
-            if 'callNumber' in call_num_components:
-                item_info['callNumber'] = call_num.for_print()
-                item_info['sortCallNumber'] = call_num.for_sort()
+                item_info['callNumber'] = call_num
+            except Exception: # catches all exceptions, not just KeyErrors
+                ...
 
             if 'effectiveShelvingOrder' in item:
                 item_info['shelvingOrder'] = item['effectiveShelvingOrder']
-                extracted_items.append(item_info)
+
+            extracted_items.append(item_info)
     
     return extracted_items
 
@@ -409,7 +408,8 @@ def remove_duplicates(items : list) -> list:
     return trimmed_items
 
 
-def extract_slice(items : list, call_number : callnumbers.LC) -> list:
+def extract_slice(items : list,
+                  call_number : callnumbers.lc.LC) -> list:
     """Identifies insertion point of call number into lst.
     
     A function which finds where a call number goes into a list
@@ -427,18 +427,14 @@ def extract_slice(items : list, call_number : callnumbers.LC) -> list:
             out of bounds areas of the original list
     """
 
-    print_call_num = call_number.for_print()
-    sort_call_num = call_number.for_sort()
-
     dummy_dict = {
-        'callNumber': print_call_num,
-        'sortCallNumber' : sort_call_num,
+        'callNumber': call_number,
         'shelvingOrder' : '',
         'title' : DUMMY_TITLE_TEXT,
     }
 
-    search_key = lambda info : (info['sortCallNumber'])
-    insertion_point = bisect(items, sort_call_num, key=search_key)
+    search_key = lambda info : (info['callNumber'])
+    insertion_point = bisect(items, call_number, key=search_key)
     items.insert(insertion_point, dummy_dict)
 
     # scope resolution, default case
@@ -494,7 +490,7 @@ def print_call_num_slice(item_slice : list,
     for item in item_slice:
 
         # extracts information
-        call_num = item['callNumber']
+        call_num = item['callNumber'].for_print()
         title = item['title'][ : TITLE_BUFFER]
 
         # adds different formatting for inputted call num placement
@@ -504,7 +500,6 @@ def print_call_num_slice(item_slice : list,
 
         # adds call number and title to output string
         output_txt += f'{call_num:<{num_buffer}}{title:<{TITLE_BUFFER}}\n'
-        print(item['shelvingOrder'])
 
     # sets up out of bounds check for ending string
     if end_out_of_bounds:
@@ -524,7 +519,7 @@ def print_call_num_slice(item_slice : list,
             call_num_slice_textbox.insert('end', char)
             call_num_slice_textbox.config(state='disabled')
             root.update()
-            sleep(0.001)
+            sleep(0.0005)
         except tk.TclError:
             return # safely ends function in case of premature window closure
     
@@ -573,11 +568,11 @@ def start_call_num_search() -> None:
     total_records = f.folio_get(path='/search/instances',
                                 key='totalRecords',
                                 query=search_query)
-    queries = f.folio_get_all(path='/search/instances',
-                              key='instances',
-                              query=search_query)
+    queries = f.folio_get(path='/search/instances',
+                          key='instances',
+                          query=search_query)
     
-    # a list of call number information from a FOLIO generator
+    # a list of call number information from a FOLIO list
     call_num_input.delete(0, 'end')
     update_status(msg='Extracting items from FOLIO.')
     extracted_items = extract_queries(queries, total_records)
