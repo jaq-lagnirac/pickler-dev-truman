@@ -1,7 +1,7 @@
 # Justin Caringal
 # 
 # A program that takes in input call number in the system and finds 
-# call numbers which preceed and succeed around an input
+# call numbers which precede and succeed around an input
 # 
 # Project start date: 2025-02-10
 # Project end date: 2025-04-07 (initial, tentative)
@@ -71,7 +71,7 @@ def resource_path(relpath : str) -> str:
     # https://stackoverflow.com/a/72060275
     try:
         base_path = sys._MEIPASS # only found in PyInstaller
-    except Exception:
+    except AttributeError:
         base_path = os.curdir
 
     return os.path.join(base_path, relpath)
@@ -129,10 +129,10 @@ def update_validation(*entry : tk.Event) -> bool:
         if type(call_num) != callnumbers.lc.LC:
             raise InvalidCallNumberStringError 
         status.config(text='Valid LC call number.',
-                        fg=SUCCESS_COL)
+                      fg=SUCCESS_COL)
         enter_button.config(state='normal')
         is_valid_id = True
-    except InvalidCallNumberStringError:
+    except (InvalidCallNumberStringError, AttributeError):
         status.config(text='Please input a valid LC call number.',
                       fg=FAIL_COL)
         enter_button.config(state='disabled')
