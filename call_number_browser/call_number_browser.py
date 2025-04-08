@@ -126,14 +126,18 @@ def update_validation(*entry : tk.Event) -> bool:
     is_valid_id = False # default case
     try:
         call_num = pycn.callnumber(call_num)
-        if type(call_num) != callnumbers.lc.LC:
+        if type(call_num) == callnumbers.lc.LC:
+            status.config(text='Valid LC call number.',
+                          fg=SUCCESS_COL)
+        elif type(call_num) == callnumbers.dewey.Dewey:
+            status.config(text='Valid Dewey call number.',
+                          fg=SUCCESS_COL)
+        else:
             raise InvalidCallNumberStringError 
-        status.config(text='Valid LC call number.',
-                      fg=SUCCESS_COL)
         enter_button.config(state='normal')
         is_valid_id = True
     except (InvalidCallNumberStringError, AttributeError):
-        status.config(text='Please input a valid LC call number.',
+        status.config(text='Please input a valid LC or Dewey call number.',
                       fg=FAIL_COL)
         enter_button.config(state='disabled')
 
@@ -329,7 +333,7 @@ def extract_queries(queries : list,
     """Extracts FOLIO information into a list.
     
     A function which takes a list from the FOLIO
-    API folio_get_all method and extracts the relevant
+    API folio_get method and extracts the relevant
     information into a dictionary which is then appended to
     a return list.
 
@@ -357,6 +361,7 @@ def extract_queries(queries : list,
         items = query['items'] # a dictionary of further key-values
         
         # iterates through each separate item tied to a holding
+        #
         # brute forces finding LC call numbers, because Pickler
         # uses both LC and Dewey call numbers (for some reason)
         for item in items:
@@ -559,10 +564,19 @@ def start_call_num_search() -> None:
     call_number = call_num_input.get()
     call_number = call_number.upper().strip() # cleans and standardizes data
     call_number = pycn.callnumber(call_number)
-    class_letters = call_number.classification.letters
+    classification = None # scope resolution
+    if type(call_number) == callnumbers.lc.LC:
+        classification = call_number.classification.letters
+    elif type(call_number) == callnumbers.dewey.Dewey:
+        classification = call_number.classification
+    else:
+        update_status(msg='Something went wrong with the ' \
+                      'inputted call number, please try again.',
+                      col=FAIL_COL)
+        return
     # formats search query
     search_query = f'holdings.tenantId=\"{tenant}\"' \
-        f' and holdingsNormalizedCallNumbers==\"{class_letters}\"' \
+        f' and holdingsNormalizedCallNumbers==\"{classification}\"' \
         ' and staffSuppress==\"false\"'
     # makes the queries
     total_records = f.folio_get(path='/search/instances',

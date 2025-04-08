@@ -1,6 +1,9 @@
 -------------------------------PROGRAM OUTPUT GOES HERE------------------------------
 
-IMPORTANT REMINDER:
+This tool will work with Library of Congress (LC) and Dewey Decimal
+Classification numbers. However, more testing has been conducted on LC numbers,
+and LC numbers appear to make up a majority of the materials that are at the
+institution of development (Pickler Memorial Library).
 
 Please make sure that config.json or another configuration JSON file exists,
 either in the same working directory as the executable (the default) or listed

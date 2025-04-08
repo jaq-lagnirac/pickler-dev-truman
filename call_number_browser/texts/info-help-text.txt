@@ -18,11 +18,13 @@ different outputs depending on what is typed in due to the lack of an
 associated shelvingOrder for the item.
 
 INPUT CALL NUMBER:
-Inputted call numbers should be Library of Congress numbers, and will be
-normalized by the pycallnumber library. Spacing, case, and other extraneous
-features should be normalized out, but in order to ensure the smoothest usage
-of this tool, please still pay attention to the inputted call number and ensure
-good input. As the old computer science adage goes: "Garbage in, garbage out."
+Inputted call numbers should be Library of Congress or Dewey Decimal
+Classification numbers, and will be normalized by the pycallnumber library (the
+system has a preference for LC numbers but should work with Dewey numbers).
+Spacing, case, and other extraneous features should be normalized out by the
+tool, but in order to ensure the smoothest usage of this tool, please still pay
+attention to the inputted call number and ensure good input. As the old
+computer science adage goes:"Garbage in, garbage out."
 
 CONFIGURATION FILE:
 The tool requires a configuration file stored in the Javascript Object Notation
@@ -58,5 +60,5 @@ More information can be found by reading the user and developer manuals
 associated with the release.
 
 Text originally published 2025-02-20, v0.0.0.
-Last updated 2025-04-02, v0.0.0.
+Last updated 2025-04-08, v0.0.2.
 Raw ver. info. (for tracking development): Z2l0aHViQGphcS1sYWduaXJhYw==
