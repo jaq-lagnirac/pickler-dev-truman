@@ -15,6 +15,7 @@ import tkinter as tk
 import webbrowser as wb
 from bisect import bisect
 from time import sleep
+from enum import Enum
 import folioclient
 from PIL import ImageTk, Image
 import pycallnumber as pycn
@@ -40,6 +41,10 @@ SLICE_ONE_SIDED = 10
 # scope resolution for variable used in
 # login_folioclient and start_call_num_search
 tenant = None
+
+# scope resolution for global variable used
+# as comparison against extracted call numbers
+input_call_num_type = None # scope resolution
 
 # keys required in config.json
 REQUIRED_CONFIG_KEYS = {
@@ -119,6 +124,8 @@ def update_validation(*entry : tk.Event) -> bool:
         bool: Returns True if patron ID is valid, False otherwise
     """
 
+    global input_call_num_type
+
     # retrieves patron id from text field
     call_num = call_num_input.get().upper().strip()
 
@@ -126,10 +133,11 @@ def update_validation(*entry : tk.Event) -> bool:
     is_valid_id = False # default case
     try:
         call_num = pycn.callnumber(call_num)
-        if type(call_num) == callnumbers.lc.LC:
+        input_call_num_type = type(call_num)
+        if input_call_num_type == callnumbers.lc.LC:
             status.config(text='Valid LC call number.',
                           fg=SUCCESS_COL)
-        elif type(call_num) == callnumbers.dewey.Dewey:
+        elif input_call_num_type == callnumbers.dewey.Dewey:
             status.config(text='Valid Dewey call number.',
                           fg=SUCCESS_COL)
         else:
@@ -372,16 +380,19 @@ def extract_queries(queries : list,
             }
 
             call_num_components = item['effectiveCallNumberComponents']
+            extracted_call_num_type = None # scope resolution
             try: # replaces "if 'callNumber' in call_num_components:"
                 call_num = pycn.callnumber(call_num_components['callNumber'])
                 item_info['callNumber'] = call_num
+                extracted_call_num_type = type(call_num)
             except Exception: # catches all exceptions, not just KeyErrors
                 ...
 
             if 'effectiveShelvingOrder' in item:
                 item_info['shelvingOrder'] = item['effectiveShelvingOrder']
 
-            extracted_items.append(item_info)
+            if input_call_num_type == extracted_call_num_type:
+                extracted_items.append(item_info)
     
     return extracted_items
 
@@ -482,8 +493,13 @@ def print_call_num_slice(item_slice : list,
         None
     """
 
+    global input_call_num_type
+    call_num_header = ' (Library of Congress)' # default
+    if input_call_num_type == callnumbers.dewey.Dewey:
+        call_num_header = ' (Dewey Decmial)'
+
     # sets up output header
-    output_heading = f'{'CALL NUMBER':<{CALL_NUM_BUFFER}}\t' \
+    output_heading = f'{f'CALL NUMBER{call_num_header}':<{CALL_NUM_BUFFER}}' \
         f'{'TITLE':<{TITLE_BUFFER}}\n'
     output_txt = f'{output_heading}{'-' * LINE_LENGTH}\n'
     
@@ -574,6 +590,7 @@ def start_call_num_search() -> None:
                       'inputted call number, please try again.',
                       col=FAIL_COL)
         return
+
     # formats search query
     search_query = f'holdings.tenantId=\"{tenant}\"' \
         f' and holdingsNormalizedCallNumbers==\"{classification}\"' \
