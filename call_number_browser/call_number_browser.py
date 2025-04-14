@@ -15,11 +15,12 @@ import tkinter as tk
 import webbrowser as wb
 from bisect import bisect
 from time import sleep
-from enum import Enum
 import folioclient
 from PIL import ImageTk, Image
 import pycallnumber as pycn
 from pycallnumber.units import callnumbers
+from pycallnumber.units.simple import Alphabetic
+from pycallnumber.units.numbers import Number
 from pycallnumber.exceptions import InvalidCallNumberStringError
 
 ### GLOBAL CONSTANTS / VARIABLES ###
@@ -108,6 +109,41 @@ def error_msg(msg : str = 'Unknown error occured.') -> None:
     error.mainloop()
 
 
+def is_juvenile_fiction(call_number : callnumbers.local.Local) -> bool:
+    """Works out if call number is a Juvenile Fiction call number.
+
+    A function which returns True if the call number is
+    a Juvenile Fiction Dewey Decimal number, False otherwise.
+    Created specifically for Pickler Memorial Library,
+    but may work within other libraries' systems.
+
+    Args:
+        call_number (callnumbers.local.Local): the inputted call number
+
+    Returns:
+        bool: Returns True if call number is for a Juvenile
+            Fiction Dewey Decimal number, False otherwise.
+    """
+
+    if len(call_number.parts) != 4:
+        return False
+
+    fiction = pycn.callnumber('F')
+    if call_number.parts[0] != fiction: # must begin with 'F'
+        return False
+    
+    if type(call_number.parts[1]) != Alphabetic:
+        return False
+    
+    if type(call_number.parts[2]) != Number:
+        return False
+    
+    if type(call_number.parts[3]) != Alphabetic:
+        return False
+    
+    return True
+
+
 def update_validation(*entry : tk.Event) -> bool:
     """Updates id_validation_msg based off of input.
     
@@ -140,10 +176,14 @@ def update_validation(*entry : tk.Event) -> bool:
         elif input_call_num_type == callnumbers.dewey.Dewey:
             status.config(text='Valid Dewey call number.',
                           fg=SUCCESS_COL)
+        elif is_juvenile_fiction(call_num):
+            status.config(text='Valid Juvenile Fiction call number.',
+                          fg=SUCCESS_COL)
         else:
             raise InvalidCallNumberStringError 
         enter_button.config(state='normal')
         is_valid_id = True
+
     except (InvalidCallNumberStringError, AttributeError):
         status.config(text='Please input a valid LC or Dewey call number.',
                       fg=FAIL_COL)
@@ -494,8 +534,10 @@ def print_call_num_slice(item_slice : list,
     """
 
     global input_call_num_type
-    call_num_header = ' (Library of Congress)' # default
-    if input_call_num_type == callnumbers.dewey.Dewey:
+    call_num_header = ' (Juvenile Fiction)' # default
+    if input_call_num_type == callnumbers.lc.LC:
+        call_num_header = ' (Library of Congress)'
+    elif input_call_num_type == callnumbers.dewey.Dewey:
         call_num_header = ' (Dewey Decmial)'
 
     # sets up output header
@@ -585,6 +627,8 @@ def start_call_num_search() -> None:
         classification = call_number.classification.letters
     elif type(call_number) == callnumbers.dewey.Dewey:
         classification = call_number.classification
+    elif is_juvenile_fiction(call_number):
+        classification = f'{call_number.parts[0]} {call_number.parts[1]}'
     else:
         update_status(msg='Something went wrong with the ' \
                       'inputted call number, please try again.',
@@ -610,7 +654,7 @@ def start_call_num_search() -> None:
 
     # sorts the list
     update_status(msg='Sorting extracted items.')
-    sorting_reqs = lambda info : (info['shelvingOrder'])
+    sorting_reqs = lambda info : (info['callNumber'])
     sorted_items = sorted(extracted_items, key=sorting_reqs)
 
     # trims duplicates from list
