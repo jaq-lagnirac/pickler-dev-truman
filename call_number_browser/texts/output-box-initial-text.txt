@@ -1,9 +1,10 @@
 -------------------------------PROGRAM OUTPUT GOES HERE------------------------------
 
-This tool will work with Library of Congress (LC) and Dewey Decimal
-Classification numbers. However, more testing has been conducted on LC numbers,
-and LC numbers appear to make up a majority of the materials that are at the
-institution of development (Pickler Memorial Library).
+This tool will work with the following call numbers:
+    - Library of Congress (LC)
+    - Dewey Decimal Classification (DDC)
+    - Local Juvenile Fiction section at Pickler Memorial Library
+Please see the pycallnumber documentation for more details.
 
 Please make sure that config.json or another configuration JSON file exists,
 either in the same working directory as the executable (the default) or listed
@@ -16,5 +17,5 @@ at Truman State University, Kirksville, MO.
 
 
 Text originally published 2025-02-20, v0.0.0.
-Last updated 2025-04-08, v1.0.0.
+Last updated 2025-04-16, v1.1.0.
 Raw ver. info. (for tracking development): Z2l0aHViQGphcS1sYWduaXJhYw==
