@@ -4,7 +4,7 @@
 # call numbers which precede and succeed around an input
 # 
 # Project start date: 2025-02-10
-# Project end date: 2025-04-07 (initial, tentative)
+# Project end date: 2025-04-16 (initial, tentative)
 
 ### LIBRARIES / PACKAGES ###
 
@@ -33,9 +33,10 @@ FONT_TUPLE = ('Verdana', 10)
 LOGO_PATH = os.path.join('images', 'logo-no-background.png')
 HELP_PATH = os.path.join('texts', 'info-help-text.txt')
 OUTPUT_BOX_INIT_PATH = os.path.join('texts', 'output-box-initial-text.txt')
-DUMMY_TITLE_TEXT = f'<{'-' * 10}Inputted call number{'-' * 10}<'
 CALL_NUM_BUFFER = 40
 TITLE_BUFFER = 45
+OUTPUT_PADDING = '-'
+DUMMY_TITLE_TEXT = f'{'INPUTTED CALL NUMBER':{OUTPUT_PADDING}^{TITLE_BUFFER}}'
 LINE_LENGTH = CALL_NUM_BUFFER + TITLE_BUFFER
 SLICE_ONE_SIDED = 10
 
@@ -125,7 +126,7 @@ def is_juvenile_fiction(call_number : callnumbers.local.Local) -> bool:
             Fiction Dewey Decimal number, False otherwise.
     """
 
-    if len(call_number.parts) != 4:
+    if len(call_number.parts) < 4:
         return False
 
     fiction = pycn.callnumber('F')
@@ -141,6 +142,9 @@ def is_juvenile_fiction(call_number : callnumbers.local.Local) -> bool:
     if type(call_number.parts[3]) != Alphabetic:
         return False
     
+    # Example of valid Local Juvenile Fiction call numbers:
+    # F B885BL --> ['F', 'B', '885', 'BL']
+    # F SE55W --> ['F', 'SE', '55', 'W']
     return True
 
 
@@ -168,24 +172,29 @@ def update_validation(*entry : tk.Event) -> bool:
     # function validates to ensure call number is inputted
     is_valid_id = False # default case
     try:
-        call_num = pycn.callnumber(call_num)
-        input_call_num_type = type(call_num)
-        if input_call_num_type == callnumbers.lc.LC:
+
+        call_num = pycn.callnumber(call_num) # attempts to convert to pycn
+        input_call_num_type = type(call_num) # saves type for comparison
+        
+        if input_call_num_type == callnumbers.lc.LC: # input is LC
             status.config(text='Valid LC call number.',
                           fg=SUCCESS_COL)
-        elif input_call_num_type == callnumbers.dewey.Dewey:
+        elif input_call_num_type == callnumbers.dewey.Dewey: # input is DDC
             status.config(text='Valid Dewey call number.',
                           fg=SUCCESS_COL)
-        elif is_juvenile_fiction(call_num):
+        elif is_juvenile_fiction(call_num): # input is juvenile fiction
             status.config(text='Valid Juvenile Fiction call number.',
                           fg=SUCCESS_COL)
-        else:
+        
+        else: # all other call number types raise an error
             raise InvalidCallNumberStringError 
+        
+        # call number input is valid
         enter_button.config(state='normal')
         is_valid_id = True
 
     except (InvalidCallNumberStringError, AttributeError):
-        status.config(text='Please input a valid LC or Dewey call number.',
+        status.config(text='Please input a valid call number.',
                       fg=FAIL_COL)
         enter_button.config(state='disabled')
 
@@ -197,7 +206,7 @@ def update_validation(*entry : tk.Event) -> bool:
 def update_status(*, # requires all arguments to be keyword-only arguments
                   msg : str = '',
                   col : str = DEFAULT_COL,
-                  enter_state : str = None) -> None:
+                  enter_state : str = '') -> None:
     """Updates the status message on the main root window.
     
     A function which handles the status message returned to the user
@@ -326,6 +335,9 @@ def login_folioclient() -> folioclient.FolioClient:
         FolioClient: Returns an API object to the FOLIOClient
     """
 
+    # attaches global variable to local scope
+    # not needed in most other implementations
+    # of login_folioclient()
     global tenant
 
     config_name = config_relpath.get()
@@ -533,7 +545,7 @@ def print_call_num_slice(item_slice : list,
         None
     """
 
-    global input_call_num_type
+    global input_call_num_type # variable for type comparison
     call_num_header = ' (Juvenile Fiction)' # default
     if input_call_num_type == callnumbers.lc.LC:
         call_num_header = ' (Library of Congress)'
@@ -553,16 +565,19 @@ def print_call_num_slice(item_slice : list,
     for item in item_slice:
 
         # extracts information
-        call_num = item['callNumber'].for_print()
-        title = item['title'][ : TITLE_BUFFER]
+        call_num = item['callNumber'].for_print().strip()
+        title = item['title'][ : TITLE_BUFFER].strip()
 
         # adds different formatting for inputted call num placement
-        num_buffer = CALL_NUM_BUFFER
         if title == DUMMY_TITLE_TEXT:
-            num_buffer -= 3
-
-        # adds call number and title to output string
-        output_txt += f'{call_num:<{num_buffer}}{title:<{TITLE_BUFFER}}\n'
+            call_num_output_str = f'{call_num} '
+            dummy_spacing = LINE_LENGTH - len(call_num_output_str)
+            output_txt += call_num_output_str + \
+                f'{title:{OUTPUT_PADDING}^{dummy_spacing}}\n'
+        else:
+            # adds call number and title to output string
+            output_txt += f'{call_num:<{CALL_NUM_BUFFER}}' \
+                f'{title:<{TITLE_BUFFER}}\n'
 
     # sets up out of bounds check for ending string
     if end_out_of_bounds:
@@ -618,24 +633,27 @@ def start_call_num_search() -> None:
 
     update_status(msg='Querying FOLIO API.')
     # takes input from user and files
-    global tenant
-    call_number = call_num_input.get()
+    call_number = call_num_input.get() # retrieves data
     call_number = call_number.upper().strip() # cleans and standardizes data
-    call_number = pycn.callnumber(call_number)
+    call_number = pycn.callnumber(call_number) # error handling pre-validated
     classification = None # scope resolution
-    if type(call_number) == callnumbers.lc.LC:
+    if type(call_number) == callnumbers.lc.LC: # class letters
         classification = call_number.classification.letters
-    elif type(call_number) == callnumbers.dewey.Dewey:
+    elif type(call_number) == callnumbers.dewey.Dewey: # first number
         classification = call_number.classification
-    elif is_juvenile_fiction(call_number):
+    elif is_juvenile_fiction(call_number): # 'F [LETTER]'
         classification = f'{call_number.parts[0]} {call_number.parts[1]}'
     else:
+        # safely exits program query execution
+        # input pre-validated, should never execute
+        # here unless something goes wrong
         update_status(msg='Something went wrong with the ' \
                       'inputted call number, please try again.',
                       col=FAIL_COL)
         return
 
     # formats search query
+    global tenant
     search_query = f'holdings.tenantId=\"{tenant}\"' \
         f' and holdingsNormalizedCallNumbers==\"{classification}\"' \
         ' and staffSuppress==\"false\"'
@@ -682,6 +700,8 @@ def start_call_num_search() -> None:
 if __name__ == '__main__':
     BUTTON_COUNT = 3
     INPUT_WIDTH = 60
+    TEXT_WIDGET_HEIGHT = 25
+    TEXT_WIDGET_WIDTH = 86
     DEFAULT_CONFIG_NAME = os.path.join(os.getcwd(), 'config.json')
     X_WIDGET_PADDING = 20
     TEXT_SIDE_PADDING = (X_WIDGET_PADDING, 0)
@@ -759,7 +779,9 @@ if __name__ == '__main__':
     OUTPUT_ROW = STATUS_ROW + 1
     BUTTON_COLUMN_START = IMAGE_COLUMN + 1
     STATUS_FONT = ('Courier New', 11)
-    status = tk.Label(root, text='', font=STATUS_FONT)
+    status = tk.Label(root,
+                      text='',
+                      font=STATUS_FONT)
     status.grid(sticky='W',
                 row=STATUS_ROW,
                 column=IMAGE_COLUMN,
@@ -770,8 +792,8 @@ if __name__ == '__main__':
     call_num_slice_textbox = tk.Text(root,
                                      wrap='word',
                                      font=('Courier New', FONT_TUPLE[1]),
-                                     height=25,
-                                     width=90)
+                                     height=TEXT_WIDGET_HEIGHT,
+                                     width=TEXT_WIDGET_WIDTH)
     call_num_slice_textbox.grid(row=OUTPUT_ROW,
                                 column=IMAGE_COLUMN,
                                 columnspan=BUTTON_COUNT + 1,
@@ -822,6 +844,9 @@ if __name__ == '__main__':
                             'Raw ver. info.: Z2l0aHViQGphcS1sYWduaXJhYw==',
                            justify='left',
                            font=(FONT_TUPLE[0], 7))
-    description.grid(sticky='W', row=BOTTOM_ROW, column=0, columnspan=100)
+    description.grid(sticky='W',
+                     row=BOTTOM_ROW,
+                     column=0,
+                     columnspan=100)
 
     root.mainloop()
