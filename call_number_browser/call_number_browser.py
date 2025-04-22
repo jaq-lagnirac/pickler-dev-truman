@@ -148,61 +148,6 @@ def is_juvenile_fiction(call_number : callnumbers.local.Local) -> bool:
     return True
 
 
-def update_validation(*entry : tk.Event) -> bool:
-    """Updates id_validation_msg based off of input.
-    
-    A function which updates a tkinter Label based off of
-    the input to the id_validation_msg Entry.
-
-    Based off of the following StackOverflow forum post:
-    https://stackoverflow.com/a/73126296
-    
-    Args:
-        entry (str): The user-inputted entry, not interacted with
-    
-    Returns:
-        bool: Returns True if patron ID is valid, False otherwise
-    """
-
-    global input_call_num_type
-
-    # retrieves patron id from text field
-    call_num = call_num_input.get().upper().strip()
-
-    # function validates to ensure call number is inputted
-    is_valid_id = False # default case
-    try:
-
-        call_num = pycn.callnumber(call_num) # attempts to convert to pycn
-        input_call_num_type = type(call_num) # saves type for comparison
-        
-        if input_call_num_type == callnumbers.lc.LC: # input is LC
-            status.config(text='Valid LC call number.',
-                          fg=SUCCESS_COL)
-        elif input_call_num_type == callnumbers.dewey.Dewey: # input is DDC
-            status.config(text='Valid Dewey call number.',
-                          fg=SUCCESS_COL)
-        elif is_juvenile_fiction(call_num): # input is juvenile fiction
-            status.config(text='Valid Juvenile Fiction call number.',
-                          fg=SUCCESS_COL)
-        
-        else: # all other call number types raise an error
-            raise InvalidCallNumberStringError 
-        
-        # call number input is valid
-        enter_button.config(state='normal')
-        is_valid_id = True
-
-    except (InvalidCallNumberStringError, AttributeError):
-        status.config(text='Please input a valid call number.',
-                      fg=FAIL_COL)
-        enter_button.config(state='disabled')
-
-    # wrap-up statements
-    root.update()
-    return is_valid_id
-
-
 def update_status(*, # requires all arguments to be keyword-only arguments
                   msg : str = '',
                   col : str = DEFAULT_COL,
@@ -237,6 +182,61 @@ def update_status(*, # requires all arguments to be keyword-only arguments
 
     root.update()
     return
+
+
+def update_validation(*entry : tk.Event) -> bool:
+    """Updates id_validation_msg based off of input.
+    
+    A function which updates a tkinter Label based off of
+    the input to the id_validation_msg Entry.
+
+    Based off of the following StackOverflow forum post:
+    https://stackoverflow.com/a/73126296
+    
+    Args:
+        entry (str): The user-inputted entry, not interacted with
+    
+    Returns:
+        bool: Returns True if patron ID is valid, False otherwise
+    """
+
+    global input_call_num_type
+
+    # retrieves patron id from text field
+    call_num = call_num_input.get().upper().strip()
+
+    # function validates to ensure call number is inputted
+    is_valid_id = False # default case
+    try:
+
+        call_num = pycn.callnumber(call_num) # attempts to convert to pycn
+        input_call_num_type = type(call_num) # saves type for comparison
+        
+        if input_call_num_type == callnumbers.lc.LC: # input is LC
+            update_status(msg='Valid LC call number.',
+                          col=SUCCESS_COL)
+        elif input_call_num_type == callnumbers.dewey.Dewey: # input is DDC
+            update_status(msg='Valid Dewey call number.',
+                          col=SUCCESS_COL)
+        elif is_juvenile_fiction(call_num): # input is juvenile fiction
+            update_status(msg='Valid Juvenile Fiction call number.',
+                          col=SUCCESS_COL)
+        
+        else: # all other call number types raise an error
+            raise InvalidCallNumberStringError 
+        
+        # call number input is valid
+        update_status(enter_state='normal')
+        is_valid_id = True
+
+    except (InvalidCallNumberStringError, AttributeError):
+        update_status(msg='Please input a valid call number.',
+                      col=FAIL_COL,
+                      enter_state='disabled')
+
+    # wrap-up statements
+    root.update()
+    return is_valid_id
 
 
 def open_info_help() -> None:
