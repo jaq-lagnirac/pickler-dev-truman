@@ -1,4 +1,4 @@
-# Call Number Browser
+# User Manual - Call Number Browser
 
 <div align="center">
     <img src="images/logo-no-background.png"
@@ -64,7 +64,7 @@ After extracting, sorting, and trimming the items from FolioClient, a slice
 centered around the inputted call number is outputted to the window of the
 tool, showcasing a possible place in the sorted shelvingOrder of the system.
 
-## Credits and closing
+## Credits and Closing
 
 Developed for use and further development on Windows using Python 3.12+.
 
@@ -75,5 +75,5 @@ Developed by [Pickler Memorial Library](https://library.truman.edu/),
 
 - **USERMANUAL.md originally published:** 2024-04-22, Project v1.1.0
 - **USERMANUAL.md last updated:** 2024-04-22, Project v1.1.0
-- **USERMANUAL.md version:** v1.0
+- **USERMANUAL.md version:** v1.1
 - **Raw ver. info. (for tracking development):** Z2l0aHViQGphcS1sYWduaXJhYw==
