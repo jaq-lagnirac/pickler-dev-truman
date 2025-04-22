@@ -73,7 +73,7 @@ Developed by [Pickler Memorial Library](https://library.truman.edu/),
 
 ## Timestamp Details
 
-- **USERMANUAL.md originally published:** 2024-04-22, Project v1.1.0
-- **USERMANUAL.md last updated:** 2024-04-22, Project v1.1.0
-- **USERMANUAL.md version:** v1.1
+- **USERMANUAL.md originally published:** 2025-04-22, Project v1.1.0
+- **USERMANUAL.md last updated:** 2025-04-22, Project v1.1.0
+- **USERMANUAL.md version:** v1.2
 - **Raw ver. info. (for tracking development):** Z2l0aHViQGphcS1sYWduaXJhYw==
