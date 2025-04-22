@@ -41,7 +41,6 @@ project as a whole. Some of these links can also be found throughout this
 document or in the relevant manual.
 
 - [Python language](https://www.python.org/)
-- [LibreOffice Writer](https://www.libreoffice.org/discover/writer/)
 
 ## Credits
 
@@ -54,5 +53,5 @@ Developed by [Pickler Memorial Library](https://library.truman.edu/),
 - **Initial project delivery date:** 2025-04-16
 - **README.md originally published:** 2025-04-22, Project v1.1.0
 - **README.md last updated:** 2025-04-22, Project v1.1.0
-- **README.md version:** v1.0
+- **README.md version:** v1.1
 - **Raw ver. info. (for tracking development):** Z2l0aHViQGphcS1sYWduaXJhYw==
