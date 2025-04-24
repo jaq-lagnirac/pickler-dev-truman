@@ -110,7 +110,7 @@ def error_msg(msg : str = 'Unknown error occured.') -> None:
     error.mainloop()
 
 
-def is_juvenile_fiction(call_number : callnumbers.local.Local) -> bool:
+def is_juvenile_fiction(call_number : callnumbers) -> bool:
     """Works out if call number is a Juvenile Fiction call number.
 
     A function which returns True if the call number is
@@ -119,7 +119,7 @@ def is_juvenile_fiction(call_number : callnumbers.local.Local) -> bool:
     but may work within other libraries' systems.
 
     Args:
-        call_number (callnumbers.local.Local): the inputted call number
+        call_number (callnumbers): the inputted call number
 
     Returns:
         bool: Returns True if call number is for a Juvenile
@@ -477,7 +477,7 @@ def remove_duplicates(items : list) -> list:
 
 
 def extract_slice(items : list,
-                  call_number : callnumbers.lc.LC) -> list:
+                  call_number : callnumbers) -> list:
     """Identifies insertion point of call number into lst.
     
     A function which finds where a call number goes into a list
@@ -486,7 +486,7 @@ def extract_slice(items : list,
     
     Args:
         items (list): A list of dictionaries with item information
-        call_number (LC): The number to be inserted
+        call_number (callnumbers): The number to be inserted
     
     Returns:
         list, bool, bool: Returns a slice of the original slice
