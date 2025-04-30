@@ -393,12 +393,12 @@ def extract_queries(queries : list,
     """Extracts FOLIO information into a list.
     
     A function which takes a list from the FOLIO
-    API folio_get method and extracts the relevant
-    information into a dictionary which is then appended to
+    API method and extracts the relevant information
+    into a dictionary which is then appended to
     a return list.
 
     Args:
-        queries (list): A FOLIO list containing call number information
+        queries (list): A FOLIO object containing call number information
         total_records (int): The total count of records listed (NOT items)
     
     Returns:
@@ -406,6 +406,7 @@ def extract_queries(queries : list,
             in separate dictionaries.
     """
 
+    global tenant # local tenant ID for comparison
     extracted_items = [] # the list to be returned
 
     for index, query in enumerate(queries):
@@ -425,6 +426,11 @@ def extract_queries(queries : list,
         # brute forces finding LC call numbers, because Pickler
         # uses both LC and Dewey call numbers (for some reason)
         for item in items:
+            # query --> PS3568.Y38 N53 2005
+            item_tenant_id = item['tenantId']
+            if tenant != item_tenant_id:
+                continue # does not add materials from other libraries
+
             item_info = {
                 'title' : title,
                 'callNumber' : 'n/a',
@@ -462,15 +468,23 @@ def remove_duplicates(items : list) -> list:
         list: A trimmed list of items with no duplicates
     """
 
+    # NOTE: the "seen" variable is most likely redundant in
+    # terms of removing duplicates, but at this scale it does
+    # not greatly affect performance and remains as legacy
+    # code and extra insurance for future maintainers.
+    # Feel free to remove it at your leisure. -jaq, 2025-04-29
     seen = set() # items already seen
+    seen_call_nums = set() # call numbers already seen
     trimmed_items = [] # unique items to be returned
     for item in items:
         
         # converts key-values into hashable pairs to be added to the list
         hashable_pair = tuple(sorted(item.items()))
+        call_num = item['callNumber'].for_print().strip()
         
-        if hashable_pair not in seen:
+        if (hashable_pair not in seen) and (call_num not in seen_call_nums):
             seen.add(hashable_pair) # adds hashable pair to set
+            seen_call_nums.add(call_num) # adds call number to set
             trimmed_items.append(item) # adds full item to list
 
     return trimmed_items
@@ -581,7 +595,7 @@ def print_call_num_slice(item_slice : list,
 
     # sets up out of bounds check for ending string
     if end_out_of_bounds:
-        output_txt += '>>>>END OF FILE<<<<'
+        output_txt += '>>>>END OF FILE<<<<\n'
     
     # clears output textbox of previous outputs
     call_num_slice_textbox.config(state='normal')
@@ -657,14 +671,43 @@ def start_call_num_search() -> None:
     search_query = f'holdings.tenantId=\"{tenant}\"' \
         f' and holdingsNormalizedCallNumbers==\"{classification}\"' \
         ' and staffSuppress==\"false\"'
-    # makes the queries
+    # makes the size query
     total_records = f.folio_get(path='/search/instances',
                                 key='totalRecords',
                                 query=search_query)
-    queries = f.folio_get(path='/search/instances',
-                          key='instances',
-                          query=search_query)
-    
+    # makes the information queries
+    SEARCH_WINDOW_LIMIT = 100
+    offset = 0
+    queries = []
+    while offset < total_records:
+
+        # organizes and formats status updates to the user
+        search_window_start = offset + 1
+        search_window_end = offset + SEARCH_WINDOW_LIMIT
+        if search_window_end > total_records:
+            search_window_end = total_records
+        update_status(msg=f'{total_records} items found. ' \
+                      'Querying FOLIO API items ' \
+                      f'#{search_window_start}-{search_window_end}.')
+        
+        # queries API
+        #
+        # limit and offset used to create a "sliding window"
+        # which searches and iterates through records
+        #
+        # NOTE: EXPANDALL NECESSARY TO GET
+        # DETAILED INFO (AND ALL REQUIRED INFO)
+        new_query = f.folio_get(path='/search/instances',
+                                key='instances',
+                                query=search_query,
+                                query_params={
+                                    'expandAll' : True,
+                                    'limit' : SEARCH_WINDOW_LIMIT,
+                                    'offset' : offset,
+                                })
+        queries += new_query # appends to total queries
+        offset += SEARCH_WINDOW_LIMIT # moves offset window
+
     # a list of call number information from a FOLIO list
     call_num_input.delete(0, 'end')
     update_status(msg='Extracting items from FOLIO.')
