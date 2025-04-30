@@ -4,7 +4,7 @@
 # call numbers which precede and succeed around an input
 # 
 # Project start date: 2025-02-10
-# Project end date: 2025-04-16 (initial, tentative)
+# Project end date: 2025-04-30
 
 ### LIBRARIES / PACKAGES ###
 
@@ -426,8 +426,9 @@ def extract_queries(queries : list,
         # brute forces finding LC call numbers, because Pickler
         # uses both LC and Dewey call numbers (for some reason)
         for item in items:
-            # query --> PS3568.Y38 N53 2005
-            item_tenant_id = item['tenantId']
+
+            # checks if call number is from Pickler or not
+            item_tenant_id = item['tenantId'] # only found in expandAll=True
             if tenant != item_tenant_id:
                 continue # does not add materials from other libraries
 
