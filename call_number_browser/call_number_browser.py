@@ -652,7 +652,7 @@ def start_call_num_search() -> None:
     call_number = call_number.upper().strip() # cleans and standardizes data
     call_number = pycn.callnumber(call_number) # error handling pre-validated
     classification = None # scope resolution
-    if type(call_number) == callnumbers.lc.LC: # class letters
+    if type(call_number) == callnumbers.lc.LC: # first 3 class letters
         classification = call_number.classification.letters
     elif type(call_number) == callnumbers.dewey.Dewey: # first number
         classification = call_number.classification
@@ -669,13 +669,28 @@ def start_call_num_search() -> None:
 
     # formats search query
     global tenant
-    search_query = f'holdings.tenantId=\"{tenant}\"' \
-        f' and holdingsNormalizedCallNumbers==\"{classification}\"' \
-        ' and staffSuppress==\"false\"'
     # makes the size query
-    total_records = f.folio_get(path='/search/instances',
-                                key='totalRecords',
-                                query=search_query)
+    UPPER_RECORD_LIMIT = 7500
+    total_records = UPPER_RECORD_LIMIT + 1 # to ensure while loop runs once
+    baseline_classnum_length = len(str(classification))
+    while total_records > UPPER_RECORD_LIMIT:
+        search_query = f'holdings.tenantId=\"{tenant}\"' \
+            f' and holdingsNormalizedCallNumbers==\"{classification}\"' \
+            ' and staffSuppress==\"false\"'
+        total_records = f.folio_get(path='/search/instances',
+                                    key='totalRecords',
+                                    query=search_query)
+        status_msg = f'{total_records} items found using \"{classification}\".'
+        if total_records > UPPER_RECORD_LIMIT:
+            # narrows search params
+            baseline_classnum_length += 1
+            classification = str(call_number)[:baseline_classnum_length]
+            status_msg += f' Trimming to under {UPPER_RECORD_LIMIT} ' \
+                f'items with \"{classification}\".'
+        
+        update_status(msg=status_msg)
+
+
     # makes the information queries
     SEARCH_WINDOW_LIMIT = 100
     offset = 0
