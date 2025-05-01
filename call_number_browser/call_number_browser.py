@@ -652,7 +652,7 @@ def start_call_num_search() -> None:
     call_number = call_number.upper().strip() # cleans and standardizes data
     call_number = pycn.callnumber(call_number) # error handling pre-validated
     classification = None # scope resolution
-    if type(call_number) == callnumbers.lc.LC: # first 3 class letters
+    if type(call_number) == callnumbers.lc.LC: # class letters
         classification = call_number.classification.letters
     elif type(call_number) == callnumbers.dewey.Dewey: # first number
         classification = call_number.classification
