@@ -10,3 +10,4 @@ A repository to track progress and possibly deploy tools related to Pickler Memo
 - **Under the direction of:**
   - **Stephen Wynn**, Assistant Dean of Technical Services & Systems (now retired)
   - **Janet Romine**, Dean of Libraries & Museums
+- **Library website link:** [Pickler Memorial Library](https://library.truman.edu)
